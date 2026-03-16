@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS Pantanal - Alerta de Incêndios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.cdnfonts.com/css/determination-mono" rel="stylesheet">
+    <style>
+        #map { height: 500px; border-radius: 1rem; }
+        .undertale-font { font-family: 'Determination Mono', 'Courier New', monospace; }
+    </style>
+</head>
+<body class="dark-theme min-h-screen flex flex-col font-sans">
+
+    <!-- Header -->
+    <header class="p-6 flex items-center justify-between border-b border-slate-800">
+        <a href="#" class="flex items-center">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAARgAAAEZCAYAAACwBCpaAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJc0ZcwAADsQAAA7EAZUrDhsAAAFTSURBVHhe7cEBDQAAAMIg+6e+g9gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB42wAATQEAAFrEEgAAAABJRU5ErkJggg==" alt="SOS Pantanal Logo" class="h-16">
+        </a>
+        <div class="flex items-center gap-4">
+            <button id="gamesBtn" class="text-slate-400 hover:text-white flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 transition-all">
+                <i data-lucide="rocket"></i>
+                Mini-Games
+            </button>
+            <button id="reportBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full font-semibold flex items-center gap-2 btn-report shadow-lg shadow-red-900/20">
+                <i data-lucide="flame"></i>
+                Reportar Incêndio
+            </button>
+        </div>
+    </header>
+
+    <main id="mainContent" class="flex-grow p-4 md:p-8 max-w-6xl mx-auto w-full space-y-8">
+        <!-- Status Card -->
+        <section id="status-card" class="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="space-y-2 w-full md:w-1/3">
+                <h2 class="text-xl font-semibold flex items-center gap-2">
+                    <i data-lucide="shield-alert" class="text-red-500"></i>
+                    Status na sua região
+                    <div id="data-status"></div>
+                </h2>
+                <p id="location-text" class="text-slate-400">Obtendo sua localização...</p>
+                <div class="mt-4 flex flex-col gap-2">
+                    <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">NASA API KEY</label>
+                    <div class="relative group">
+                        <input type="password" id="apiKeyInput" placeholder="Insira sua MAP_KEY" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 w-full md:w-64 transition-all pr-10">
+                        <button type="button" onclick="const input = document.getElementById('apiKeyInput'); input.type = input.type === 'password' ? 'text' : 'password';" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <a href="https://firms.modaps.eosdis.nasa.gov/api/area/" target="_blank" class="text-[9px] text-blue-400 hover:underline flex items-center gap-1">
+                        <i data-lucide="external-link" class="w-2 h-2"></i> Obter chave gratuita na NASA
+                    </a>
+                </div>
+            </div>
+            
+            <div class="flex-grow w-full md:w-1/3 px-4">
+                <label class="text-xs text-slate-400 mb-2 block uppercase tracking-wider font-bold">Raio de Visão: <span id="radiusValue" class="text-blue-400">100</span>km</label>
+                <input type="range" id="radiusRange" min="10" max="500" value="100" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+            </div>
+
+            <div class="flex gap-4 w-full md:w-1/3 justify-end">
+                <div class="bg-slate-900/80 px-6 py-3 rounded-xl border border-slate-700 text-center flex-grow">
+                    <p class="text-sm text-slate-400">Incêndios próximos</p>
+                    <p id="fire-count" class="text-2xl font-bold text-red-500">0</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Map Section -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium flex items-center gap-2">
+                    <i data-lucide="map" class="text-slate-400"></i>
+                    Mapa de Focos Ativos
+                </h3>
+                <button id="refreshMap" class="text-slate-400 hover:text-white flex items-center gap-1 text-sm">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    Atualizar
+                </button>
+            </div>
+            <div id="map" class="shadow-2xl shadow-black/50 border border-slate-700 relative">
+                <div id="mapLoader" class="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[500] hidden items-center justify-center">
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="text-xs font-bold text-white uppercase tracking-widest">Atualizando Mapa</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Legend & Info -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-800/30 p-4 rounded-xl border border-slate-800">
+                <h4 class="font-semibold mb-3 flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
+                    Como funciona
+                </h4>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    Monitoramos dados de satélite em tempo real e relatórios da comunidade para identificar focos de incêndio no Pantanal.
+                </p>
+            </div>
+            <div class="bg-slate-800/30 p-4 rounded-xl border border-slate-800">
+                <h4 class="font-semibold mb-3 flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-500"></i>
+                    Notificação
+                </h4>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    Se você avistar fumaça ou fogo, use o botão de reportar. Sua informação é validada e ajuda as brigadas locais.
+                </p>
+            </div>
+            <div class="bg-slate-800/30 p-4 rounded-xl border border-slate-800">
+                <h4 class="font-semibold mb-3 flex items-center gap-2">
+                    <i data-lucide="phone" class="w-4 h-4 text-green-500"></i>
+                    Emergência
+                </h4>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    Corpo de Bombeiros: <span class="text-white font-bold">193</span><br>
+                    Prevfogo/IBAMA: <span class="text-white font-bold">0800 61 8080</span>
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Report -->
+    <div id="reportModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="flame" class="text-red-500"></i>
+                    Reportar Incêndio
+                </h3>
+                <button id="closeModal" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="reportForm" class="p-6 space-y-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Localização do Fogo</label>
+                    <div class="bg-slate-800 p-3 rounded-lg text-sm text-slate-400 flex items-center gap-2">
+                        <i data-lucide="map-pin" class="w-4 h-4"></i>
+                        <span id="currentCoords">Detectando sua posição...</span>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Intensidade Observada</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="intensity" value="low" class="hidden peer" checked>
+                            <div class="bg-slate-800 p-2 text-center rounded-lg border border-transparent peer-checked:border-green-500 peer-checked:bg-green-500/10 text-xs">Baixa</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="intensity" value="medium" class="hidden peer">
+                            <div class="bg-slate-800 p-2 text-center rounded-lg border border-transparent peer-checked:border-yellow-500 peer-checked:bg-yellow-500/10 text-xs">Média</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="intensity" value="high" class="hidden peer">
+                            <div class="bg-slate-800 p-2 text-center rounded-lg border border-transparent peer-checked:border-red-500 peer-checked:bg-red-500/10 text-xs">Alta</div>
+                        </label>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Observações (Opcional)</label>
+                    <textarea class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Ex: Próximo à rodovia BR-262..." rows="3"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-red-900/30 transition-all">
+                    Enviar Relatório
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="p-6 text-center text-slate-500 text-sm border-t border-slate-800">
+        &copy; 2026 SOS Pantanal - Tecnologia a serviço da preservação.
+    </footer>
+
+    <!-- Mini-Games Modal -->
+    <div id="gamesModal" class="fixed inset-0 bg-black z-[2000] hidden flex-col p-4 overflow-auto undertale-font">
+        <div class="max-w-2xl mx-auto w-full">
+            <div class="flex justify-between items-center mb-8 pt-4 border-b-4 border-white pb-4">
+                <h2 class="text-4xl font-bold text-white tracking-widest uppercase">
+                    PANTANALE
+                </h2>
+                <button id="closeGames" class="text-white hover:text-yellow-400 transition-colors text-2xl">
+                    [ X ]
+                </button>
+                <button id="toggleAudio" class="text-white hover:text-yellow-400 transition-colors text-2xl ml-4">
+                    [ 🔈 ]
+                </button>
+                <div id="audioStatus" class="text-xs text-slate-500 ml-4 hidden md:block uppercase tracking-tighter">Som: Carregando...</div>
+            </div>
+
+            <div class="space-y-8">
+                <!-- Space Style Game Container -->
+                <div class="bg-black border-4 border-blue-500 p-2">
+                    <div id="gameCanvasContainer" class="relative bg-black h-80 flex items-center justify-center overflow-hidden">
+                        <canvas id="rocketGame" width="400" height="300" class="hidden border-2 border-blue-900"></canvas>
+                        <div id="gameStartUI" class="text-center space-y-6">
+                            <p class="text-3xl text-white uppercase">* Pilote a nave de monitoramento.</p>
+                            <p class="text-xl text-blue-400">* Desvie dos asteroides e vença as galáxias.</p>
+                            <button id="startGameBtn" class="border-4 border-blue-500 px-10 py-4 text-3xl font-bold text-white hover:bg-blue-500 hover:text-black transition-all uppercase">
+                                DECOLAR
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Space Style UI -->
+                <div class="flex justify-between items-center text-white text-3xl border-4 border-blue-500 p-6 uppercase">
+                    <div class="flex items-center gap-4">
+                        <span class="text-blue-400">PILOTO</span>
+                        <span class="ml-4">LV <span id="playerLevel">1</span></span>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-red-500">HULL</span>
+                            <div class="w-32 h-4 bg-slate-800 relative border-2 border-white">
+                                <div id="hpBar" class="h-full bg-yellow-400 w-full transition-all"></div>
+                            </div>
+                            <span id="hpText" class="text-xl">100/100</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-orange-400">TP</span>
+                            <div class="w-32 h-4 bg-slate-800 relative border-2 border-white overflow-hidden">
+                                <div id="tpBar" class="h-full bg-orange-500 w-0 transition-all"></div>
+                            </div>
+                            <span id="tpText" class="text-xl">0%</span>
+                        </div>
+                    </div>
+                    <div class="text-yellow-400">
+                        DIST: <span id="highScore">0</span>ly
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Músicas Dinâmicas (ia80... links diretos do Archive.org) -->
+    <audio id="musicLow" src="https://ia801309.us.archive.org/28/items/undertale_ost/Undertale%20-%20001%20-%20Once%20Upon%20A%20Time.mp3" preload="auto" loop crossorigin="anonymous"></audio>
+    <audio id="musicMid" src="https://ia801309.us.archive.org/28/items/undertale_ost/Undertale%20-%20031%20-%20Waterfall.mp3" preload="auto" loop crossorigin="anonymous"></audio>
+    <audio id="musicHigh" src="https://ia801309.us.archive.org/28/items/undertale_ost/Undertale%20-%20087%20-%20Hopes%20and%20Dreams.mp3" preload="auto" loop crossorigin="anonymous"></audio>
+
+    <script src="app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
