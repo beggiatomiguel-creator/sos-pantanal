@@ -495,6 +495,9 @@ let doubleDamageTimer = 0;
 
 // Final Boss State
 let bossActive = false;
+let bossDefeated = false; // Novo estado para a cena final
+let bossDecision = 'none'; // 'kill', 'spare', 'none'
+let bossEndingTimer = 0;
 let boss = {
     x: 500,
     y: 150,
@@ -843,6 +846,12 @@ function updateGame() {
         }
     }
 
+    // Lógica da Cena Final (Pós-Derrota do Boss)
+    if (bossDefeated) {
+        updateFinalScene();
+        return; // Pula o resto do loop normal para manter tudo preto
+    }
+
     // Reduzir timers de debuff
     if (shotDisabledTimer > 0) shotDisabledTimer--;
     if (doubleDamageTimer > 0) doubleDamageTimer--;
@@ -1042,7 +1051,12 @@ function updateGame() {
                     
                     if (boss.hp <= 0) {
                         bossActive = false;
-                        victory();
+                        bossDefeated = true; // Inicia cena final
+                        boss.state = 'resting';
+                        boss.dialogue = "Huff... puff...";
+                        boss.dialogueTimer = 9999;
+                        hazards = [];
+                        playerBullets = [];
                     }
                 } else {
                     // Feedback visual de invulnerabilidade (opcional)
@@ -1519,8 +1533,156 @@ function gameOver() {
     }, 3000);
 }
 
+function updateFinalScene() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Desenha o Boss debilitado
+    drawBoss();
+    
+    // Desenha a Nave girada 90 graus (Vertical)
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(-Math.PI / 2); // Giro de 90 graus para cima
+    
+    // Reaproveita a lógica de cor da nave do drawShip()
+    let baseColor = '#fff'; 
+    ctx.fillStyle = baseColor;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = baseColor;
+    
+    // Desenha a forma da nave (Estrela/Final)
+    ctx.beginPath();
+    ctx.moveTo(25, 0); ctx.lineTo(5, -10); ctx.lineTo(-5, -25); ctx.lineTo(-10, -10);
+    ctx.lineTo(-25, 0); ctx.lineTo(-10, 10); ctx.lineTo(-5, 25); ctx.lineTo(5, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    if (bossDecision === 'none') {
+        // Desenha os botões Matar e Poupar
+        drawDecisionButtons();
+        checkDecisionInput();
+    } else if (bossDecision === 'kill') {
+        executeKillEnding();
+    } else if (bossDecision === 'spare') {
+        executeSpareEnding();
+    }
+    
+    requestAnimationFrame(updateFinalScene);
+}
+
+function drawDecisionButtons() {
+    // Botão MATAR
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(50, 250, 120, 40);
+    ctx.fillStyle = '#ff0000';
+    ctx.font = '20px "Determination Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('[ MATAR ]', 110, 277);
+    
+    // Botão POUPAR
+    ctx.strokeStyle = '#ffff00';
+    ctx.strokeRect(230, 250, 120, 40);
+    ctx.fillStyle = '#ffff00';
+    ctx.fillText('[ POUPAR ]', 290, 277);
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px "Determination Mono", monospace';
+    ctx.fillText('Use as Setas e ENTER para escolher', canvas.width/2, 230);
+}
+
+let selectedOption = 'kill';
+function checkDecisionInput() {
+    if (keys['ArrowRight']) selectedOption = 'spare';
+    if (keys['ArrowLeft']) selectedOption = 'kill';
+    
+    // Cursor visual
+    ctx.strokeStyle = '#fff';
+    if (selectedOption === 'kill') ctx.strokeRect(48, 248, 124, 44);
+    else ctx.strokeRect(228, 248, 124, 44);
+
+    if (keys['Enter']) {
+        bossDecision = selectedOption;
+        bossEndingTimer = 0;
+        keys['Enter'] = false; // Evita repetição
+    }
+}
+
+function executeKillEnding() {
+    bossEndingTimer++;
+    if (bossEndingTimer === 1) {
+        boss.dialogue = "Eu sabia que no final de tudo você era só um monstro sem coração...";
+    }
+    
+    if (bossEndingTimer > 180) { // Espera o diálogo
+        // Efeito de carga estilo Clover (Undertale Yellow)
+        const chargeRatio = Math.min(1, (bossEndingTimer - 180) / 120);
+        ctx.fillStyle = `rgba(255, 255, 0, ${chargeRatio})`;
+        ctx.beginPath();
+        ctx.arc(ship.x, ship.y - 40, 50 * chargeRatio, 0, Math.PI * 2);
+        ctx.fill();
+        
+        if (bossEndingTimer === 300) {
+            // Disparo Hiper Shot
+            boss.hp = 0;
+            boss.dialogue = "";
+            // Efeito de flash branco
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        if (bossEndingTimer > 310) {
+            victoryGenocide();
+        }
+    }
+}
+
+function executeSpareEnding() {
+    bossEndingTimer++;
+    if (bossEndingTimer === 1) {
+        boss.dialogue = "Não sabia que eu era digno da sua piedade, não espere gratidão mas, até que você não é tão mau assim...";
+    }
+    
+    if (bossEndingTimer > 240) {
+        boss.x += 1; // Caminha devagarinho para fora
+        if (boss.x > 500) {
+            victoryPacifist();
+        }
+    }
+}
+
+function victoryGenocide() {
+    cancelAnimationFrame(animationId);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f00';
+    ctx.font = 'bold 40px "Determination Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('FINAL GENOCIDA', canvas.width/2, 100);
+    ctx.font = '20px "Determination Mono", monospace';
+    ctx.fillText('Você escolheu a destruição total.', canvas.width/2, 160);
+    setTimeout(() => stopGame(), 5000);
+}
+
+function victoryPacifist() {
+    cancelAnimationFrame(animationId);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffff00';
+    ctx.font = 'bold 40px "Determination Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('FINAL PACIFISTA', canvas.width/2, 100);
+    ctx.font = '20px "Determination Mono", monospace';
+    ctx.fillText('A piedade salvou o que restou.', canvas.width/2, 160);
+    setTimeout(() => stopGame(), 5000);
+}
+
 function stopGame() {
     gameRunning = false;
+    bossDefeated = false;
+    bossDecision = 'none';
     cancelAnimationFrame(animationId);
     document.getElementById('gameStartUI').classList.remove('hidden');
     canvas.classList.add('hidden');
