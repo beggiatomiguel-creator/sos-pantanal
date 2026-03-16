@@ -473,7 +473,7 @@ document.addEventListener('click', () => {
 
 let gameRunning = false;
 let score = 0;
-let ship = { x: 200, y: 150, width: 30, height: 20, speed: 4 };
+let ship = { x: 200, y: 150, width: 30, height: 20, speed: 3 };
 let hazards = []; 
 let playerBullets = [];
 let animationId;
@@ -546,7 +546,7 @@ function superShoot() {
         tp -= cost;
         updateTP();
         const size = (level >= 19) ? 35 : 20;
-        playerBullets.push({ x: ship.x + 15, y: ship.y, vx: 15, vy: 0, size: size, isSuper: true });
+        playerBullets.push({ x: ship.x + 15, y: ship.y, vx: 10, vy: 0, size: size, isSuper: true });
     }
 }
 
@@ -557,7 +557,7 @@ function shoot() {
         updateTP();
         
         const bulletSize = (level >= 4) ? 7 : 5;
-        const bulletSpeed = (level >= 9) ? 15 : 10;
+        const bulletSpeed = (level >= 9) ? 10 : 7;
         
         // Tiro Simples (LV 1-4)
         if (level < 5) {
@@ -625,33 +625,33 @@ function spawnHazards() {
     
     // Inimigos normais só aparecem se o Boss não estiver ativo
     if (!bossActive) {
-        // Trigger Supernova every ~10 seconds
-        if (frameCount % 600 === 0 && supernovaState === 'none') {
+        // Trigger Supernova every ~15 seconds (900 frames instead of 600)
+        if (frameCount % 900 === 0 && supernovaState === 'none') {
             supernovaState = 'warning';
             supernovaType = Math.random() > 0.5 ? 'blue' : 'orange';
             supernovaTimer = 90; // 1.5 seconds warning
         }
 
-        // Asteroides Normais (only spawn if no supernova is active)
-        if (supernovaState === 'none' && frameCount % 40 === 0) {
+        // Asteroides Normais (spawn every 60 frames instead of 40)
+        if (supernovaState === 'none' && frameCount % 60 === 0) {
             const side = Math.floor(Math.random() * 4);
             let h = { x: 0, y: 0, vx: 0, vy: 0, size: 15 + Math.random() * 15, type: 'asteroid', color: '#888' };
-            if (side === 0) { h.x = Math.random() * 400; h.y = -50; h.vy = 2 + Math.random() * 2; }
-            else if (side === 1) { h.x = Math.random() * 400; h.y = 350; h.vy = -(2 + Math.random() * 2); }
-            else if (side === 2) { h.x = -50; h.y = Math.random() * 300; h.vx = 2 + Math.random() * 2; }
-            else { h.x = 450; h.y = Math.random() * 300; h.vx = -(2 + Math.random() * 2); }
+            if (side === 0) { h.x = Math.random() * 400; h.y = -50; h.vy = 1.5 + Math.random() * 1.5; }
+            else if (side === 1) { h.x = Math.random() * 400; h.y = 350; h.vy = -(1.5 + Math.random() * 1.5); }
+            else if (side === 2) { h.x = -50; h.y = Math.random() * 300; h.vx = 1.5 + Math.random() * 1.5; }
+            else { h.x = 450; h.y = Math.random() * 300; h.vx = -(1.5 + Math.random() * 1.5); }
             hazards.push(h);
         }
 
-        // Asteroides Verdes (Cura)
-        if (supernovaState === 'none' && frameCount % 200 === 0) {
-            let h = { x: Math.random() * 400, y: -50, vx: 0, vy: 2, size: 20, type: 'heal', color: '#22c55e' };
+        // Asteroides Verdes (Cura - every 300 frames instead of 200)
+        if (supernovaState === 'none' && frameCount % 300 === 0) {
+            let h = { x: Math.random() * 400, y: -50, vx: 0, vy: 1.5, size: 20, type: 'heal', color: '#22c55e' };
             hazards.push(h);
         }
 
-        // Galáxia Boss
-        if (supernovaState === 'none' && frameCount % 400 === 0) {
-            let h = { x: 450, y: Math.random() * 200 + 50, vx: -1, vy: 0, size: 70, type: 'galaxy', color: '#f0f', hp: 10 };
+        // Galáxia Boss (every 600 frames instead of 400)
+        if (supernovaState === 'none' && frameCount % 600 === 0) {
+            let h = { x: 450, y: Math.random() * 200 + 50, vx: -0.7, vy: 0, size: 70, type: 'galaxy', color: '#f0f', hp: 10 };
             hazards.push(h);
         }
     }
@@ -1159,7 +1159,7 @@ function drawShip() {
 function updateBoss() {
     // Entrada do Boss
     if (boss.x > 300) {
-        boss.x -= 2;
+        boss.x -= 1.5;
         boss.state = 'idle';
     } else {
         // Movimento de flutuação (Senoide)
@@ -1301,8 +1301,8 @@ function spawnBossAttack() {
             hazards.push({
                 x: boss.x,
                 y: boss.y,
-                vx: - (3 + Math.random() * 4),
-                vy: -2 + Math.random() * 4,
+                vx: - (2 + Math.random() * 3),
+                vy: -1.5 + Math.random() * 3,
                 size: 20,
                 type: 'asteroid',
                 color: '#ff4400'
@@ -1314,8 +1314,8 @@ function spawnBossAttack() {
             hazards.push({
                 x: boss.x,
                 y: boss.y,
-                vx: Math.cos(i) * 3,
-                vy: Math.sin(i) * 3,
+                vx: Math.cos(i) * 2,
+                vy: Math.sin(i) * 2,
                 size: 25,
                 type: 'asteroid',
                 color: '#4b0082'
@@ -1326,8 +1326,8 @@ function spawnBossAttack() {
         hazards.push({
             x: boss.x,
             y: boss.y,
-            vx: -5,
-            vy: (ship.y - boss.y) / 50, // Persegue levemente
+            vx: -3.5,
+            vy: (ship.y - boss.y) / 70, // Persegue mais devagar
             size: 30,
             type: 'debuff',
             color: '#ff0000'
