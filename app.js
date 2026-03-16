@@ -959,6 +959,18 @@ function updateGame() {
                     score += 100;
                     enemiesDefeated++;
                     checkLevelUp();
+                } else if (h.type === 'heal') {
+                    // Nova mecânica: Atirar no asteroide verde também cura e dá TP!
+                    hazards.splice(i, 1);
+                    hp = Math.min(maxHp, hp + 10);
+                    tp = Math.min(maxTp, tp + 20);
+                    updateHP();
+                    updateTP();
+                    
+                    // Feedback visual rápido
+                    ctx.fillStyle = '#22c55e';
+                    ctx.font = 'bold 15px "Determination Mono", monospace';
+                    ctx.fillText('+HP +20TP', pb.x, pb.y - 20);
                 }
             }
         });
@@ -982,8 +994,10 @@ function updateGame() {
         if (dist < (h.size/2 + hitBoxRadius)) {
             if (h.type === 'heal') {
                 hp = Math.min(maxHp, hp + 10);
+                tp = Math.min(maxTp, tp + 20); // Também ganha 20 de TP ao encostar
                 hazards.splice(i, 1);
                 updateHP();
+                updateTP();
             } else if (h.type === 'debuff') {
                 // Efeito do Debuff: Sem tiro por 3s + Dano dobrado por 5s
                 shotDisabledTimer = 180; // 3 segundos a 60fps
