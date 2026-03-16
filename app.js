@@ -40,7 +40,16 @@ async function fetchFireData() {
         return demoFires;
     }
 
-    const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${API_KEY.trim()}/VIIRS_SNPP_NRT/${PANTANAL_AREA}/1`;
+    // Calcula Bounding Box dinâmica (aproximadamente 1 grau = 111km)
+    // Para garantir os 500km, pegamos uma margem de segurança de ~5 graus
+    const margin = (currentRadius / 111) + 0.5;
+    const minLat = (userLocation.lat - margin).toFixed(2);
+    const maxLat = (userLocation.lat + margin).toFixed(2);
+    const minLon = (userLocation.lng - margin).toFixed(2);
+    const maxLon = (userLocation.lng + margin).toFixed(2);
+    
+    const dynamicArea = `${minLon},${minLat},${maxLon},${maxLat}`;
+    const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${API_KEY.trim()}/VIIRS_SNPP_NRT/${dynamicArea}/1`;
     
     try {
         const controller = new AbortController();
