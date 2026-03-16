@@ -290,6 +290,70 @@ if (reportForm) {
     });
 }
 
+// IA Assistant Logic
+const aiBtn = document.getElementById('aiBtn');
+const aiModal = document.getElementById('aiModal');
+const closeAi = document.getElementById('closeAi');
+const aiForm = document.getElementById('aiForm');
+const aiInput = document.getElementById('aiInput');
+const aiChat = document.getElementById('aiChat');
+
+const aiKnowledge = {
+    "queimada": "As queimadas no Pantanal são detectadas pelos satélites VIIRS e MODIS da NASA. Elas mostram anomalias térmicas no solo.",
+    "fogo": "Se você vir fogo, mantenha distância e ligue para o 193 (Bombeiros) ou 0800 61 8080 (Prevfogo).",
+    "mapa": "O mapa usa a API FIRMS da NASA para mostrar focos ativos em tempo real. O círculo azul mostra o seu raio de visão configurado.",
+    "nasa": "A NASA disponibiliza o sistema FIRMS (Fire Information for Resource Management System) que fornece dados globais de incêndios quase em tempo real.",
+    "raio": "Você pode ajustar o raio de visão no slider acima do mapa, indo de 10km até 500km de distância.",
+    "tp": "Tension Points (TP) no mini-game são ganhos ao chegar perto de perigos sem bater neles. É a mecânica de 'Graze'!",
+    "supernova": "As supernovas no jogo exigem atenção: Azul (fique parado) e Laranja (mova-se). Se desviar perfeitamente, ganha TP máximo!",
+    "pantanale": "Pantanale é o nosso mini-game inspirado em Undertale/Deltarune para conscientização ambiental.",
+    "ajuda": "Eu posso falar sobre: como funciona o mapa, dados da NASA, segurança contra incêndios e as mecânicas do mini-game.",
+    "oi": "Olá! Como posso ajudar você hoje com as informações do Pantanal?",
+    "ola": "Olá! Como posso ajudar você hoje com as informações do Pantanal?",
+    "logo": "A logo do SOS Pantanal foi criada especialmente para este projeto de monitoramento.",
+    "chave": "A MAP_KEY é necessária para acessar os dados da NASA. Você pode obter uma gratuitamente no site oficial da FIRMS.",
+    "distancia": "O cálculo de distância no mapa usa a fórmula de Haversine para precisão em coordenadas esféricas.",
+    "pantanal": "O Pantanal é a maior planície de inundação contínua do mundo e sofre muito com as secas e queimadas."
+};
+
+aiBtn.addEventListener('click', () => aiModal.classList.replace('hidden', 'flex'));
+closeAi.addEventListener('click', () => aiModal.classList.replace('flex', 'hidden'));
+
+aiForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const query = aiInput.value.toLowerCase().trim();
+    if (!query) return;
+
+    // User Message
+    addChatMessage('user', aiInput.value);
+    aiInput.value = '';
+
+    // Bot Response Logic
+    setTimeout(() => {
+        let response = "Desculpe, ainda estou aprendendo sobre isso. Tente perguntar sobre 'mapa', 'fogo', 'NASA', 'raio' ou sobre o 'mini-game'.";
+        
+        for (let key in aiKnowledge) {
+            if (query.includes(key)) {
+                response = aiKnowledge[key];
+                break;
+            }
+        }
+        
+        addChatMessage('bot', response);
+    }, 500);
+});
+
+function addChatMessage(role, text) {
+    const msg = document.createElement('div');
+    msg.className = role === 'user' 
+        ? 'bg-slate-800 border border-slate-700 p-3 rounded-xl ml-8 text-right' 
+        : 'bg-blue-600/20 border border-blue-600/30 p-3 rounded-xl mr-8 text-left text-blue-100';
+    msg.innerText = text;
+    aiChat.appendChild(msg);
+    aiChat.scrollTop = aiChat.scrollHeight;
+    lucide.createIcons();
+}
+
 // Mini-Games Logic (Space Adventure Style)
 const gamesBtn = document.getElementById('gamesBtn');
 const gamesModal = document.getElementById('gamesModal');

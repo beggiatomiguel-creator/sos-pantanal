@@ -23,6 +23,10 @@
             <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAARgAAAEZCAYAAACwBCpaAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJc0ZcwAADsQAAA7EAZUrDhsAAAFTSURBVHhe7cEBDQAAAMIg+6e+g9gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB42wAATQEAAFrEEgAAAABJRU5ErkJggg==" alt="SOS Pantanal Logo" class="h-16">
         </a>
         <div class="flex items-center gap-4">
+            <button id="aiBtn" class="text-slate-400 hover:text-white flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 transition-all">
+                <i data-lucide="bot"></i>
+                Assistente IA
+            </button>
             <button id="gamesBtn" class="text-slate-400 hover:text-white flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 transition-all">
                 <i data-lucide="rocket"></i>
                 Mini-Games
@@ -171,6 +175,36 @@
                     Enviar Relatório
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- IA Assistant Modal -->
+    <div id="aiModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1500] hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[600px]">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="bot" class="text-blue-400"></i>
+                    Assistente do Pantanal
+                </h3>
+                <button id="closeAi" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div id="aiChat" class="flex-grow overflow-y-auto p-6 space-y-4 text-sm scrollbar-thin scrollbar-thumb-slate-700">
+                <div class="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl text-blue-100">
+                    Olá! Eu sou o assistente virtual do SOS Pantanal. Posso te ajudar a entender os dados do mapa, dar dicas de segurança ou explicar como a tecnologia FIRMS da NASA funciona. O que deseja saber?
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-800 bg-slate-900">
+                <form id="aiForm" class="flex gap-2">
+                    <input type="text" id="aiInput" placeholder="Pergunte sobre os incêndios ou o mapa..." class="flex-grow bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl shadow-lg transition-all">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
