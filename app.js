@@ -489,6 +489,10 @@ let immunityTimer = 0;
 let level = 1;
 let enemiesDefeated = 0;
 
+// Ship Status Effects
+let shotDisabledTimer = 0;
+let doubleDamageTimer = 0;
+
 // Final Boss State
 let bossActive = false;
 let boss = {
@@ -497,7 +501,7 @@ let boss = {
     hp: 1000,
     maxHp: 1000,
     size: 100,
-    phase: 1,
+    state: 'idle', // 'idle', 'attacking', 'resting'
     timer: 0,
     dialogue: "",
     dialogueTimer: 0
@@ -536,6 +540,7 @@ window.addEventListener('keyup', (e) => {
 });
 
 function superShoot() {
+    if (shotDisabledTimer > 0) return;
     const cost = (level >= 17) ? 7 : 10;
     if (tp >= cost) {
         tp -= cost;
@@ -546,6 +551,7 @@ function superShoot() {
 }
 
 function shoot() {
+    if (shotDisabledTimer > 0) return;
     if (tp >= 1) {
         tp -= 1;
         updateTP();
@@ -818,6 +824,10 @@ function updateGame() {
         }
     }
 
+    // Reduzir timers de debuff
+    if (shotDisabledTimer > 0) shotDisabledTimer--;
+    if (doubleDamageTimer > 0) doubleDamageTimer--;
+
     // Boss Logic
     if (bossActive) {
         updateBoss();
@@ -827,6 +837,18 @@ function updateGame() {
     if (level >= 15 && frameCount % 120 === 0 && hp < maxHp) {
         hp = Math.min(maxHp, hp + 1);
         updateHP();
+    }
+
+    // Feedback visual de Debuff na Nave
+    if (shotDisabledTimer > 0 || doubleDamageTimer > 0) {
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(ship.x - 20, ship.y - 20);
+        ctx.lineTo(ship.x + 20, ship.y + 20);
+        ctx.moveTo(ship.x + 20, ship.y - 20);
+        ctx.lineTo(ship.x - 20, ship.y + 20);
+        ctx.stroke();
     }
 
     // Desenhar Nave
@@ -860,13 +882,21 @@ function updateGame() {
         h.y += h.vy || 0;
         
         // Desenhar Hazard
-        if (h.type === 'asteroid' || h.type === 'heal') {
+        if (h.type === 'asteroid' || h.type === 'heal' || h.type === 'debuff') {
             ctx.fillStyle = h.color;
             ctx.beginPath();
             ctx.arc(h.x, h.y, h.size/2, 0, Math.PI * 2);
             ctx.fill();
+            
             if (h.type === 'heal') {
                 ctx.strokeStyle = '#fff';
+                ctx.stroke();
+            } else if (h.type === 'debuff') {
+                // Aura Azul para a bola vermelha
+                ctx.strokeStyle = '#00f5ff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(h.x, h.y, h.size/2 + 5, 0, Math.PI * 2);
                 ctx.stroke();
             }
         } else if (h.type === 'galaxy') {
@@ -935,8 +965,22 @@ function updateGame() {
                 hp = Math.min(maxHp, hp + 10);
                 hazards.splice(i, 1);
                 updateHP();
+            } else if (h.type === 'debuff') {
+                // Efeito do Debuff: Sem tiro por 3s + Dano dobrado por 5s
+                shotDisabledTimer = 180; // 3 segundos a 60fps
+                doubleDamageTimer = 300; // 5 segundos a 60fps
+                hazards.splice(i, 1);
+                
+                // Feedback visual imediato
+                ctx.fillStyle = '#ff0000';
+                ctx.font = 'bold 20px "Determination Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('ARMA DESATIVADA! DANO DOBRADO!', canvas.width/2, canvas.height/2 + 30);
             } else if (!isImmune) {
-                hp -= (h.type === 'galaxy' ? 15 : 5);
+                let damage = (h.type === 'galaxy' ? 15 : 5);
+                if (doubleDamageTimer > 0) damage *= 2; // Dano dobrado se tiver o debuff
+                
+                hp -= damage;
                 if (supernovaState === 'active') supernovaDamaged = true;
                 hazards.splice(i, 1);
                 isImmune = true;
@@ -957,12 +1001,22 @@ function updateGame() {
             const dist = Math.sqrt(dx*dx + dy*dy);
             if (dist < (boss.size/2 + pb.size)) {
                 if (!pb.isSuper) playerBullets.splice(pbi, 1);
-                const damage = pb.isSuper ? 15 : 3;
-                boss.hp -= damage;
                 
-                if (boss.hp <= 0) {
-                    bossActive = false;
-                    victory();
+                // Só toma dano se estiver descansando
+                if (boss.state === 'resting') {
+                    const damage = pb.isSuper ? 15 : 3;
+                    boss.hp -= damage;
+                    
+                    if (boss.hp <= 0) {
+                        bossActive = false;
+                        victory();
+                    }
+                } else {
+                    // Feedback visual de invulnerabilidade (opcional)
+                    ctx.strokeStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(boss.x, boss.y, boss.size/2 + 10, 0, Math.PI * 2);
+                    ctx.stroke();
                 }
             }
         });
@@ -1106,22 +1160,42 @@ function updateBoss() {
     // Entrada do Boss
     if (boss.x > 300) {
         boss.x -= 2;
+        boss.state = 'idle';
     } else {
         // Movimento de flutuação (Senoide)
         boss.y = 150 + Math.sin(frameCount * 0.05) * 50;
         
-        // Timer de ataque
+        // Máquina de Estados do Boss
         boss.timer++;
         
-        // Padrões de Ataque
-        if (boss.timer % 120 === 0) {
-            spawnBossAttack();
+        if (boss.state === 'idle') {
+            if (boss.timer > 60) {
+                boss.state = 'attacking';
+                boss.timer = 0;
+                boss.dialogue = "PREPARE-SE PARA A QUEIMADA!";
+                boss.dialogueTimer = 60;
+            }
+        } else if (boss.state === 'attacking') {
+            if (boss.timer % 60 === 0) {
+                spawnBossAttack();
+            }
+            if (boss.timer > 400) { // Ataca por ~7 segundos
+                boss.state = 'resting';
+                boss.timer = 0;
+                boss.dialogue = "*Cansado...*";
+                boss.dialogueTimer = 120;
+            }
+        } else if (boss.state === 'resting') {
+            if (boss.timer > 180) { // Descansa por 3 segundos
+                boss.state = 'idle';
+                boss.timer = 0;
+            }
         }
 
-        // Diálogos Aleatórios
+        // Diálogos Aleatórios (apenas se não estiver descansando)
         if (boss.dialogueTimer > 0) {
             boss.dialogueTimer--;
-        } else if (Math.random() < 0.005) {
+        } else if (Math.random() < 0.005 && boss.state !== 'resting') {
             boss.dialogue = bossDialogues[Math.floor(Math.random() * bossDialogues.length)];
             boss.dialogueTimer = 120;
         }
@@ -1134,11 +1208,18 @@ function drawBoss() {
     // Corpo do Boss (Uma galáxia gigante e sombria)
     ctx.save();
     ctx.translate(boss.x, boss.y);
+    
+    // Efeito visual de vulnerabilidade (piscar quando descansando)
+    if (boss.state === 'resting') {
+        ctx.globalAlpha = 0.5 + Math.sin(frameCount * 0.2) * 0.3;
+    }
+
     ctx.rotate(frameCount * 0.02);
     
-    // Aura externa
+    // Aura externa (Muda de cor conforme o estado)
+    const auraColor = boss.state === 'resting' ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 0, 0, 0.2)';
     const aura = ctx.createRadialGradient(0, 0, 0, 0, 0, boss.size);
-    aura.addColorStop(0, 'rgba(255, 0, 0, 0.2)');
+    aura.addColorStop(0, auraColor);
     aura.addColorStop(0.5, 'rgba(128, 0, 128, 0.1)');
     aura.addColorStop(1, 'transparent');
     ctx.fillStyle = aura;
@@ -1149,7 +1230,7 @@ function drawBoss() {
     // Núcleo
     const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, boss.size/2);
     grad.addColorStop(0, '#fff');
-    grad.addColorStop(0.2, '#ff0000');
+    grad.addColorStop(0.2, boss.state === 'resting' ? '#00f5ff' : '#ff0000');
     grad.addColorStop(0.5, '#4b0082');
     grad.addColorStop(1, 'transparent');
     ctx.fillStyle = grad;
@@ -1171,7 +1252,7 @@ function drawBoss() {
     ctx.fillRect(barX, barY, barWidth, barHeight);
     
     const hpPercent = boss.hp / boss.maxHp;
-    ctx.fillStyle = '#ff0000';
+    ctx.fillStyle = boss.state === 'resting' ? '#00f5ff' : '#ff0000';
     ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
     ctx.strokeStyle = '#fff';
     ctx.strokeRect(barX, barY, barWidth, barHeight);
@@ -1179,7 +1260,8 @@ function drawBoss() {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 12px "Determination Mono", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText("ENTROPIA SUPREMA", canvas.width/2, barY - 5);
+    const statusText = boss.state === 'resting' ? "ENTROPIA VULNERÁVEL" : "ENTROPIA SUPREMA (INVULNERÁVEL)";
+    ctx.fillText(statusText, canvas.width/2, barY - 5);
 
     // Balão de Diálogo (Estilo Undertale)
     if (boss.dialogueTimer > 0) {
@@ -1211,41 +1293,52 @@ function drawBoss() {
 }
 
 function spawnBossAttack() {
-     const pattern = Math.floor(Math.random() * 3);
-     
-     if (pattern === 0) {
-         // Chuva de Meteoros Vermelhos
-         for(let i=0; i<5; i++) {
-             hazards.push({
-                 x: boss.x,
-                 y: boss.y,
-                 vx: - (3 + Math.random() * 4),
-                 vy: -2 + Math.random() * 4,
-                 size: 20,
-                 type: 'asteroid',
-                 color: '#ff4400'
-             });
-         }
-     } else if (pattern === 1) {
-         // Disparo de Anéis
-         for(let i=0; i<Math.PI*2; i+=Math.PI/4) {
-             hazards.push({
-                 x: boss.x,
-                 y: boss.y,
-                 vx: Math.cos(i) * 3,
-                 vy: Math.sin(i) * 3,
-                 size: 25,
-                 type: 'asteroid',
-                 color: '#4b0082'
-             });
-         }
-     } else {
-         // Supernova Rápida (Sempre Azul ou Laranja)
-         supernovaState = 'warning';
-         supernovaType = Math.random() > 0.5 ? 'blue' : 'orange';
-         supernovaTimer = 60;
-     }
- }
+    const pattern = Math.floor(Math.random() * 4);
+    
+    if (pattern === 0) {
+        // Chuva de Meteoros Vermelhos
+        for(let i=0; i<5; i++) {
+            hazards.push({
+                x: boss.x,
+                y: boss.y,
+                vx: - (3 + Math.random() * 4),
+                vy: -2 + Math.random() * 4,
+                size: 20,
+                type: 'asteroid',
+                color: '#ff4400'
+            });
+        }
+    } else if (pattern === 1) {
+        // Disparo de Anéis
+        for(let i=0; i<Math.PI*2; i+=Math.PI/4) {
+            hazards.push({
+                x: boss.x,
+                y: boss.y,
+                vx: Math.cos(i) * 3,
+                vy: Math.sin(i) * 3,
+                size: 25,
+                type: 'asteroid',
+                color: '#4b0082'
+            });
+        }
+    } else if (pattern === 2) {
+        // BOLA VERMELHA COM AURA AZUL (Desativa tiro + Dano Dobrado)
+        hazards.push({
+            x: boss.x,
+            y: boss.y,
+            vx: -5,
+            vy: (ship.y - boss.y) / 50, // Persegue levemente
+            size: 30,
+            type: 'debuff',
+            color: '#ff0000'
+        });
+    } else {
+        // Supernova Rápida (Sempre Azul ou Laranja)
+        supernovaState = 'warning';
+        supernovaType = Math.random() > 0.5 ? 'blue' : 'orange';
+        supernovaTimer = 60;
+    }
+}
  
  function updateHP() {
      const percent = (hp / maxHp) * 100;
@@ -1361,6 +1454,8 @@ startGameBtn.addEventListener('click', () => {
     playerBullets = [];
     supernovaState = 'none';
     bossActive = false;
+    shotDisabledTimer = 0;
+    doubleDamageTimer = 0;
     ship = { x: 200, y: 150, width: 30, height: 20, speed: 4 };
     updateHP();
     updateTP();
