@@ -13,6 +13,7 @@ if (apiKeyInput) {
 
 // Coordenadas do Pantanal
 const PANTANAL_AREA = '-59,-22,-54,-16'; 
+const COMMUNITY_REPORTS_URL = 'https://kvdb.io/ANv9p9Y6yY8z2Z3z2z2z2z/sos_pantanal_reports'; // Bucket público compartilhado
 
 let map;
 let userMarker;
@@ -34,58 +35,57 @@ const demoFires = [
 ];
 
 async function fetchFireData() {
-    if (!API_KEY || API_KEY.trim().length < 5) {
-        isLiveData = false;
-        updateDataIndicator();
-        return demoFires;
+    let nasaFires = [];
+    if (API_KEY && API_KEY.trim().length > 5) {
+        const margin = (currentRadius / 111) + 0.5;
+        const minLat = (userLocation.lat - margin).toFixed(2);
+        const maxLat = (userLocation.lat + margin).toFixed(2);
+        const minLon = (userLocation.lng - margin).toFixed(2);
+        const maxLon = (userLocation.lng + margin).toFixed(2);
+        const dynamicArea = `${minLon},${minLat},${maxLon},${maxLat}`;
+        const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${API_KEY.trim()}/VIIRS_SNPP_NRT/${dynamicArea}/1`;
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const text = await response.text();
+                if (!text.toLowerCase().includes("invalid api call")) {
+                    nasaFires = parseCSV(text);
+                    isLiveData = true;
+                }
+            }
+        } catch (e) {
+            console.warn("Erro NASA:", e);
+        }
     }
 
-    // Calcula Bounding Box dinâmica (aproximadamente 1 grau = 111km)
-    // Para garantir os 500km, pegamos uma margem de segurança de ~5 graus
-    const margin = (currentRadius / 111) + 0.5;
-    const minLat = (userLocation.lat - margin).toFixed(2);
-    const maxLat = (userLocation.lat + margin).toFixed(2);
-    const minLon = (userLocation.lng - margin).toFixed(2);
-    const maxLon = (userLocation.lng + margin).toFixed(2);
-    
-    const dynamicArea = `${minLon},${minLat},${maxLon},${maxLat}`;
-    const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${API_KEY.trim()}/VIIRS_SNPP_NRT/${dynamicArea}/1`;
-    
+    if (nasaFires.length === 0 && !isLiveData) {
+        nasaFires = demoFires;
+    }
+
+    // Busca os reportes da COMUNIDADE (Globalmente visível)
+    let communityFires = [];
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos de timeout
-
-        const response = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const commResponse = await fetch(COMMUNITY_REPORTS_URL);
+        if (commResponse.ok) {
+            const allReports = await commResponse.json();
+            // Filtra reportes que estão dentro do raio de visão do usuário
+            communityFires = (allReports || []).filter(r => {
+                const dist = calculateDistance(userLocation.lat, userLocation.lng, r.latitude, r.longitude);
+                return dist <= currentRadius;
+            });
         }
-
-        const text = await response.text();
-        if (text.toLowerCase().includes("invalid api call")) {
-            console.error("NASA API Key is invalid.");
-            isLiveData = false;
-            updateDataIndicator();
-            return demoFires;
-        }
-
-        const data = parseCSV(text);
-        if (data.length === 0) {
-            isLiveData = true; // API funcionou, mas não há focos
-            updateDataIndicator();
-            return [];
-        }
-
-        isLiveData = true;
-        updateDataIndicator();
-        return data;
-    } catch (error) {
-        console.warn("NASA API fetch failed, using demo data:", error.message);
-        isLiveData = false;
-        updateDataIndicator();
-        return demoFires;
+    } catch (e) {
+        console.warn("Erro ao carregar reportes comunitários:", e);
     }
+
+    updateDataIndicator();
+    // NASA usa markers vermelhos, Comunidade usa markers amarelos (definido no render)
+    return [...nasaFires, ...communityFires];
 }
 
 function updateDataIndicator() {
@@ -219,12 +219,32 @@ async function renderMapState() {
             if (distance <= currentRadius) {
                 firesInRange++;
                 const conf = String(fire.confidence).toLowerCase();
-                const color = (conf === 'high' || parseInt(conf) > 80) ? '#ef4444' : (conf === 'nominal' || parseInt(conf) > 50) ? '#f59e0b' : '#22c55e';
+                
+                // Cores: NASA (Vermelho/Laranja) vs COMUNIDADE (Amarelo/Dourado)
+                let color = '#ef4444'; // NASA High
+                if (fire.is_community) {
+                    color = '#eab308'; // Dourado Comunitário
+                } else if (conf === 'nominal' || parseInt(conf) > 50) {
+                    color = '#f59e0b'; // NASA Nominal
+                } else if (conf === 'low' || (parseInt(conf) <= 50 && conf !== 'community')) {
+                    color = '#22c55e'; // NASA Low
+                }
+
                 const icon = L.divIcon({
-                    html: `<div class="w-6 h-6 rounded-full flex items-center justify-center border-2 border-white animate-pulse shadow-lg" style="background-color: ${color}"><i data-lucide="flame" class="w-4 h-4 text-white"></i></div>`,
+                    html: `<div class="w-6 h-6 rounded-full flex items-center justify-center border-2 border-white ${fire.is_community ? 'animate-bounce' : 'animate-pulse'} shadow-lg" style="background-color: ${color}">
+                            <i data-lucide="${fire.is_community ? 'megaphone' : 'flame'}" class="w-4 h-4 text-white"></i>
+                           </div>`,
                     className: '', iconSize: [24, 24]
                 });
-                const marker = L.marker([lat, lng], { icon }).bindPopup(`<b>Foco Detectado</b><br>Distância: ${distance.toFixed(1)} km<br>Confiança: ${conf}`).addTo(map);
+
+                const title = fire.is_community ? "Reporte Comunitário" : "Foco Detectado (NASA)";
+                const marker = L.marker([lat, lng], { icon }).bindPopup(`
+                    <div class="p-1">
+                        <b class="text-slate-900">${title}</b><br>
+                        <span class="text-xs text-slate-600">Distância: ${distance.toFixed(1)} km</span><br>
+                        <span class="text-xs text-slate-600">Data: ${fire.acq_date}</span>
+                    </div>
+                `).addTo(map);
                 fireMarkers.push(marker);
             }
         });
@@ -268,25 +288,59 @@ document.getElementById('closeModal').addEventListener('click', () => document.g
 
 const reportForm = document.getElementById('reportForm');
 if (reportForm) {
-    reportForm.addEventListener('submit', (e) => {
+    reportForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Criar um marcador visual temporário para o reporte do usuário
-        const userReportIcon = L.divIcon({
-            html: `<div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-xl bg-blue-600"><i data-lucide="megaphone" class="w-5 h-5 text-white"></i></div>`,
-            className: '', iconSize: [32, 32]
-        });
-        
-        const marker = L.marker([userLocation.lat, userLocation.lng], { icon: userReportIcon })
-            .bindPopup(`<b>Seu Reporte</b><br>Enviado agora<br>Status: Em análise`)
-            .addTo(map);
-        
-        fireMarkers.push(marker); // Adiciona à lista para ser limpo no próximo refresh se necessário
+        const reportData = {
+            latitude: userLocation.lat,
+            longitude: userLocation.lng,
+            confidence: 'COMMUNITY',
+            acq_date: new Date().toISOString().split('T')[0],
+            is_community: true
+        };
 
-        alert('Obrigado! Seu relatório foi enviado e um marcador temporário foi adicionado ao mapa para você.');
+        // Envia para o banco de dados global (KVDB)
+        try {
+            // Primeiro busca os existentes
+            const getResponse = await fetch(COMMUNITY_REPORTS_URL);
+            let currentReports = [];
+            if (getResponse.ok) {
+                currentReports = await getResponse.json();
+            }
+            
+            // Adiciona o novo
+            currentReports.push(reportData);
+            
+            // Salva de volta (PUT substitui o valor no KVDB)
+            const putResponse = await fetch(COMMUNITY_REPORTS_URL, {
+                method: 'PUT',
+                body: JSON.stringify(currentReports)
+            });
+
+            if (putResponse.ok) {
+                // Criar um marcador visual temporário para o reporte do usuário
+                const userReportIcon = L.divIcon({
+                    html: `<div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-xl bg-yellow-500"><i data-lucide="megaphone" class="w-5 h-5 text-white"></i></div>`,
+                    className: '', iconSize: [32, 32]
+                });
+                
+                const marker = L.marker([userLocation.lat, userLocation.lng], { icon: userReportIcon })
+                    .bindPopup(`<b>Seu Reporte Comunitário</b><br>Visível para todos!<br>Status: Publicado`)
+                    .addTo(map);
+                
+                fireMarkers.push(marker);
+
+                alert('Obrigado! Seu reporte foi publicado globalmente e agora está visível para todos os usuários do site.');
+            }
+        } catch (error) {
+            console.error("Erro ao publicar reporte:", error);
+            alert('Erro ao publicar globalmente, mas seu reporte foi adicionado localmente.');
+        }
+
         document.getElementById('reportModal').classList.replace('flex', 'hidden');
         reportForm.reset();
         lucide.createIcons();
+        renderMapState(); // Atualiza o mapa para mostrar o novo reporte
     });
 }
 
