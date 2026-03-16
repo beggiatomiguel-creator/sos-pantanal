@@ -264,15 +264,29 @@ radiusRange.addEventListener('input', (e) => {
 
 // Modal de Reporte
 document.getElementById('reportBtn').addEventListener('click', () => document.getElementById('reportModal').classList.replace('hidden', 'flex'));
-document.getElementById('closeModal').addEventListener('click', () => document.getElementById('reportModal').classList.replace('hidden', 'flex'));
+document.getElementById('closeModal').addEventListener('click', () => document.getElementById('reportModal').classList.replace('flex', 'hidden'));
 
 const reportForm = document.getElementById('reportForm');
 if (reportForm) {
     reportForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        alert('Obrigado! Seu relatório foi enviado e será validado pelas brigadas locais.');
+        
+        // Criar um marcador visual temporário para o reporte do usuário
+        const userReportIcon = L.divIcon({
+            html: `<div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-xl bg-blue-600"><i data-lucide="megaphone" class="w-5 h-5 text-white"></i></div>`,
+            className: '', iconSize: [32, 32]
+        });
+        
+        const marker = L.marker([userLocation.lat, userLocation.lng], { icon: userReportIcon })
+            .bindPopup(`<b>Seu Reporte</b><br>Enviado agora<br>Status: Em análise`)
+            .addTo(map);
+        
+        fireMarkers.push(marker); // Adiciona à lista para ser limpo no próximo refresh se necessário
+
+        alert('Obrigado! Seu relatório foi enviado e um marcador temporário foi adicionado ao mapa para você.');
         document.getElementById('reportModal').classList.replace('flex', 'hidden');
         reportForm.reset();
+        lucide.createIcons();
     });
 }
 
