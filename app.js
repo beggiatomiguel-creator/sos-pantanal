@@ -498,20 +498,39 @@ let bossActive = false;
 let boss = {
     x: 500,
     y: 150,
-    hp: 1000,
-    maxHp: 1000,
+    hp: 1500, // Aumentado para comportar 5 fases
+    maxHp: 1500,
     size: 100,
     state: 'idle', // 'idle', 'attacking', 'resting'
+    phase: 1, // 1 a 5
     timer: 0,
     dialogue: "",
     dialogueTimer: 0
 };
+
+// Sistema de Diálogos Dinâmicos (Gerador de variações para parecer 1000+)
+const bossPrefixes = ["Humano...", "Verme...", "Pequeno piloto...", "Sentinela...", "Pobre alma...", "Lutador...", "Insignificante...", "Bravo...", "Tolo...", "Curioso..."];
+const bossMiddles = ["o fogo", "a cinza", "o vácuo", "a entropia", "o calor", "o fim", "o destino", "a escuridão", "o deserto", "o silêncio"];
+const bossSuffixes = ["é inevitável.", "vai te consumir.", "não tem fim.", "é a única verdade.", "te espera.", "devora tudo.", "é o seu mestre.", "não pode ser parado.", "está aqui.", "é absoluto."];
+
+function getRandomBossDialogue() {
+    const p = bossPrefixes[Math.floor(Math.random() * bossPrefixes.length)];
+    const m = bossMiddles[Math.floor(Math.random() * bossMiddles.length)];
+    const s = bossSuffixes[Math.floor(Math.random() * bossSuffixes.length)];
+    return `${p} ${m} ${s}`;
+}
+
 const bossDialogues = [
     "Você acha que pode apagar o fogo do destino?",
     "O Pantanal é apenas o começo da cinza.",
     "Sinta o calor de mil galáxias!",
     "Sua determinação é... irritante.",
-    "EU SOU A ENTROPIA QUE QUEIMA O MUNDO!"
+    "EU SOU A ENTROPIA QUE QUEIMA O MUNDO!",
+    "A água seca, o fogo permanece.",
+    "Por que lutar contra o inevitável?",
+    "Cada faísca é um grito de socorro que eu ignoro.",
+    "O equilíbrio foi quebrado há muito tempo.",
+    "Eu sou o que resta quando tudo queima."
 ];
 
 // Supernova States
@@ -1157,46 +1176,64 @@ function drawShip() {
 }
 
 function updateBoss() {
+    // Atualização da Fase com base no HP
+    const hpPercent = boss.hp / boss.maxHp;
+    if (hpPercent > 0.8) boss.phase = 1;
+    else if (hpPercent > 0.6) boss.phase = 2;
+    else if (hpPercent > 0.4) boss.phase = 3;
+    else if (hpPercent > 0.2) boss.phase = 4;
+    else boss.phase = 5;
+
     // Entrada do Boss
     if (boss.x > 300) {
         boss.x -= 1.5;
         boss.state = 'idle';
     } else {
-        // Movimento de flutuação (Senoide)
-        boss.y = 150 + Math.sin(frameCount * 0.05) * 50;
+        // Movimento de flutuação (Senoide mais rápida nas fases finais)
+        const waveSpeed = 0.05 + (boss.phase * 0.01);
+        const waveAmp = 50 + (boss.phase * 5);
+        boss.y = 150 + Math.sin(frameCount * waveSpeed) * waveAmp;
         
         // Máquina de Estados do Boss
         boss.timer++;
         
         if (boss.state === 'idle') {
-            if (boss.timer > 60) {
+            const idleTime = 60 - (boss.phase * 5);
+            if (boss.timer > idleTime) {
                 boss.state = 'attacking';
                 boss.timer = 0;
-                boss.dialogue = "PREPARE-SE PARA A QUEIMADA!";
+                boss.dialogue = boss.phase === 5 ? "CHEGOU A HORA DO FIM!" : `FASE ${boss.phase}: COMECE A QUEIMAR!`;
                 boss.dialogueTimer = 60;
             }
         } else if (boss.state === 'attacking') {
-            if (boss.timer % 60 === 0) {
+            const attackInterval = 60 - (boss.phase * 8);
+            if (boss.timer % Math.max(20, attackInterval) === 0) {
                 spawnBossAttack();
             }
-            if (boss.timer > 400) { // Ataca por ~7 segundos
+            
+            const attackDuration = 400 + (boss.phase * 50);
+            if (boss.timer > attackDuration) {
                 boss.state = 'resting';
                 boss.timer = 0;
-                boss.dialogue = "*Cansado...*";
+                boss.dialogue = boss.phase === 5 ? "Não... não pode ser..." : "*Recuperando forças...*";
                 boss.dialogueTimer = 120;
             }
         } else if (boss.state === 'resting') {
-            if (boss.timer > 180) { // Descansa por 3 segundos
+            const restDuration = 180 - (boss.phase * 20);
+            if (boss.timer > Math.max(60, restDuration)) {
                 boss.state = 'idle';
                 boss.timer = 0;
             }
         }
 
-        // Diálogos Aleatórios (apenas se não estiver descansando)
+        // Diálogos Aleatórios (Geração de 1000+ variações)
         if (boss.dialogueTimer > 0) {
             boss.dialogueTimer--;
-        } else if (Math.random() < 0.005 && boss.state !== 'resting') {
-            boss.dialogue = bossDialogues[Math.floor(Math.random() * bossDialogues.length)];
+        } else if (Math.random() < 0.008 && boss.state !== 'resting') {
+            // Escolhe entre diálogo fixo ou gerado dinamicamente
+            boss.dialogue = Math.random() > 0.4 
+                ? getRandomBossDialogue() 
+                : bossDialogues[Math.floor(Math.random() * bossDialogues.length)];
             boss.dialogueTimer = 120;
         }
     }
@@ -1214,10 +1251,19 @@ function drawBoss() {
         ctx.globalAlpha = 0.5 + Math.sin(frameCount * 0.2) * 0.3;
     }
 
-    ctx.rotate(frameCount * 0.02);
+    // Rotação mais rápida nas fases finais
+    ctx.rotate(frameCount * (0.02 + boss.phase * 0.005));
     
-    // Aura externa (Muda de cor conforme o estado)
-    const auraColor = boss.state === 'resting' ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 0, 0, 0.2)';
+    // Aura externa (Muda de cor conforme o estado e fase)
+    let auraColor;
+    if (boss.state === 'resting') {
+        auraColor = 'rgba(0, 255, 255, 0.2)';
+    } else {
+        // Fica mais vermelho sangue na fase 5
+        const intensity = 100 + (boss.phase * 30);
+        auraColor = `rgba(${intensity}, 0, ${255 - intensity}, 0.2)`;
+    }
+    
     const aura = ctx.createRadialGradient(0, 0, 0, 0, 0, boss.size);
     aura.addColorStop(0, auraColor);
     aura.addColorStop(0.5, 'rgba(128, 0, 128, 0.1)');
@@ -1230,7 +1276,9 @@ function drawBoss() {
     // Núcleo
     const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, boss.size/2);
     grad.addColorStop(0, '#fff');
-    grad.addColorStop(0.2, boss.state === 'resting' ? '#00f5ff' : '#ff0000');
+    let coreColor = boss.state === 'resting' ? '#00f5ff' : '#ff0000';
+    if (boss.phase === 5 && boss.state !== 'resting') coreColor = '#000'; // Núcleo negro na última fase
+    grad.addColorStop(0.2, coreColor);
     grad.addColorStop(0.5, '#4b0082');
     grad.addColorStop(1, 'transparent');
     ctx.fillStyle = grad;
@@ -1260,16 +1308,16 @@ function drawBoss() {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 12px "Determination Mono", monospace';
     ctx.textAlign = 'center';
-    const statusText = boss.state === 'resting' ? "ENTROPIA VULNERÁVEL" : "ENTROPIA SUPREMA (INVULNERÁVEL)";
+    const statusText = boss.state === 'resting' ? `FASE ${boss.phase}: ENTROPIA VULNERÁVEL` : `FASE ${boss.phase}: ENTROPIA SUPREMA (INVULNERÁVEL)`;
     ctx.fillText(statusText, canvas.width/2, barY - 5);
 
     // Balão de Diálogo (Estilo Undertale)
     if (boss.dialogueTimer > 0) {
         ctx.fillStyle = '#fff';
-        ctx.fillRect(boss.x - 120, boss.y - 100, 150, 50);
+        ctx.fillRect(boss.x - 120, boss.y - 100, 150, 60); // Aumentado para 3 linhas
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
-        ctx.strokeRect(boss.x - 120, boss.y - 100, 150, 50);
+        ctx.strokeRect(boss.x - 120, boss.y - 100, 150, 60);
         
         ctx.fillStyle = '#000';
         ctx.font = '10px "Determination Mono", monospace';
@@ -1280,7 +1328,7 @@ function drawBoss() {
         let y = boss.y - 85;
         for(let n = 0; n < words.length; n++) {
             let testLine = line + words[n] + ' ';
-            if (testLine.length > 25) {
+            if (testLine.length > 20) {
                 ctx.fillText(line, boss.x - 115, y);
                 line = words[n] + ' ';
                 y += 12;
@@ -1293,50 +1341,56 @@ function drawBoss() {
 }
 
 function spawnBossAttack() {
-    const pattern = Math.floor(Math.random() * 4);
+    const patternCount = 3 + (boss.phase >= 3 ? 1 : 0); // Libera mais padrões em fases altas
+    const pattern = Math.floor(Math.random() * patternCount);
     
     if (pattern === 0) {
-        // Chuva de Meteoros Vermelhos
-        for(let i=0; i<5; i++) {
+        // Chuva de Meteoros (Mais intensa em fases altas)
+        const count = 4 + boss.phase;
+        for(let i=0; i<count; i++) {
             hazards.push({
                 x: boss.x,
                 y: boss.y,
-                vx: - (2 + Math.random() * 3),
-                vy: -1.5 + Math.random() * 3,
-                size: 20,
+                vx: - (2 + Math.random() * (2 + boss.phase * 0.5)),
+                vy: -2 + Math.random() * 4,
+                size: 15 + Math.random() * 10,
                 type: 'asteroid',
-                color: '#ff4400'
+                color: boss.phase === 5 ? '#ff0000' : '#ff4400'
             });
         }
     } else if (pattern === 1) {
-        // Disparo de Anéis
-        for(let i=0; i<Math.PI*2; i+=Math.PI/4) {
+        // Disparo de Anéis (Mais densos em fases altas)
+        const step = (Math.PI * 2) / (8 + boss.phase * 2);
+        for(let i=0; i<Math.PI*2; i+=step) {
             hazards.push({
                 x: boss.x,
                 y: boss.y,
-                vx: Math.cos(i) * 2,
-                vy: Math.sin(i) * 2,
-                size: 25,
+                vx: Math.cos(i) * (2 + boss.phase * 0.2),
+                vy: Math.sin(i) * (2 + boss.phase * 0.2),
+                size: 20,
                 type: 'asteroid',
                 color: '#4b0082'
             });
         }
     } else if (pattern === 2) {
-        // BOLA VERMELHA COM AURA AZUL (Desativa tiro + Dano Dobrado)
-        hazards.push({
-            x: boss.x,
-            y: boss.y,
-            vx: -3.5,
-            vy: (ship.y - boss.y) / 70, // Persegue mais devagar
-            size: 30,
-            type: 'debuff',
-            color: '#ff0000'
-        });
+        // BOLA VERMELHA COM AURA AZUL (Frequência aumenta na fase 3+)
+        const count = boss.phase >= 4 ? 2 : 1;
+        for(let j=0; j<count; j++) {
+            hazards.push({
+                x: boss.x,
+                y: boss.y + (j * 40 - 20),
+                vx: -3 - (boss.phase * 0.5),
+                vy: (ship.y - boss.y) / (80 - boss.phase * 5),
+                size: 30,
+                type: 'debuff',
+                color: '#ff0000'
+            });
+        }
     } else {
-        // Supernova Rápida (Sempre Azul ou Laranja)
+        // Supernova Rápida
         supernovaState = 'warning';
         supernovaType = Math.random() > 0.5 ? 'blue' : 'orange';
-        supernovaTimer = 60;
+        supernovaTimer = Math.max(45, 70 - boss.phase * 5); // Warning mais curto em fases altas
     }
 }
  
@@ -1397,19 +1451,40 @@ function victory() {
     gameRunning = false;
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 40px "Determination Mono", monospace';
+    
+    // Efeito de Estrelas na Vitória
+    for(let i=0; i<150; i++) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.random()})`;
+        ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 2, 2);
+    }
+
+    ctx.fillStyle = '#ffeb3b';
+    ctx.font = 'bold 45px "Determination Mono", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('VITÓRIA', canvas.width/2, canvas.height/2 - 40);
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = '#ffeb3b';
+    ctx.fillText('VITÓRIA!', canvas.width/2, 100);
+    ctx.shadowBlur = 0;
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = '22px "Determination Mono", monospace';
+    ctx.fillText('A Entropia Suprema foi dissipada!', canvas.width/2, 160);
+    
+    ctx.fillStyle = '#4caf50';
     ctx.font = '20px "Determination Mono", monospace';
-    ctx.fillText('Você salvou o Pantanal (por enquanto).', canvas.width/2, canvas.height/2);
+    ctx.fillText('O Pantanal está a salvo por hoje.', canvas.width/2, 210);
+    
+    ctx.fillStyle = '#8bc34a';
     ctx.font = '16px "Determination Mono", monospace';
-    ctx.fillStyle = '#22c55e'; // Verde grama
-    ctx.fillText('Agora, vá tocar um pouco de grama.', canvas.width/2, canvas.height/2 + 40);
+    ctx.fillText('Agora... por favor, vá encostar em um pouco de grama.', canvas.width/2, 250);
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '14px "Determination Mono", monospace';
+    ctx.fillText(`Score Final: ${Math.floor(score/10)}`, canvas.width/2, 300);
 
     setTimeout(() => {
         stopGame();
-    }, 5000);
+    }, 8000);
 }
 
 function gameOver() {
