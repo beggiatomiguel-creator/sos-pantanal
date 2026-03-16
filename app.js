@@ -299,21 +299,80 @@ const aiInput = document.getElementById('aiInput');
 const aiChat = document.getElementById('aiChat');
 
 const aiKnowledge = {
-    "queimada": "As queimadas no Pantanal são detectadas pelos satélites VIIRS e MODIS da NASA. Elas mostram anomalias térmicas no solo.",
-    "fogo": "Se você vir fogo, mantenha distância e ligue para o 193 (Bombeiros) ou 0800 61 8080 (Prevfogo).",
-    "mapa": "O mapa usa a API FIRMS da NASA para mostrar focos ativos em tempo real. O círculo azul mostra o seu raio de visão configurado.",
-    "nasa": "A NASA disponibiliza o sistema FIRMS (Fire Information for Resource Management System) que fornece dados globais de incêndios quase em tempo real.",
-    "raio": "Você pode ajustar o raio de visão no slider acima do mapa, indo de 10km até 500km de distância.",
-    "tp": "Tension Points (TP) no mini-game são ganhos ao chegar perto de perigos sem bater neles. É a mecânica de 'Graze'!",
-    "supernova": "As supernovas no jogo exigem atenção: Azul (fique parado) e Laranja (mova-se). Se desviar perfeitamente, ganha TP máximo!",
-    "pantanale": "Pantanale é o nosso mini-game inspirado em Undertale/Deltarune para conscientização ambiental.",
-    "ajuda": "Eu posso falar sobre: como funciona o mapa, dados da NASA, segurança contra incêndios e as mecânicas do mini-game.",
-    "oi": "Olá! Como posso ajudar você hoje com as informações do Pantanal?",
-    "ola": "Olá! Como posso ajudar você hoje com as informações do Pantanal?",
-    "logo": "A logo do SOS Pantanal foi criada especialmente para este projeto de monitoramento.",
-    "chave": "A MAP_KEY é necessária para acessar os dados da NASA. Você pode obter uma gratuitamente no site oficial da FIRMS.",
-    "distancia": "O cálculo de distância no mapa usa a fórmula de Haversine para precisão em coordenadas esféricas.",
-    "pantanal": "O Pantanal é a maior planície de inundação contínua do mundo e sofre muito com as secas e queimadas."
+    "queimada": {
+        responses: [
+            "As queimadas no Pantanal são monitoradas pelos satélites VIIRS e MODIS da NASA. Eles detectam o calor extremo e nos enviam as coordenadas quase em tempo real.",
+            "O monitoramento de queimadas é essencial para as brigadas de incêndio. Satélites passam sobre o Pantanal várias vezes ao dia capturando anomalias térmicas."
+        ]
+    },
+    "fogo": {
+        responses: [
+            "Se você avistar fogo real, a primeira regra é: SEGURANÇA. Afaste-se e ligue imediatamente para o 193 (Bombeiros) ou 0800 61 8080 (Prevfogo).",
+            "O fogo no Pantanal se espalha rápido devido ao vento e à vegetação seca. Nunca tente combater um incêndio florestal sem treinamento e equipamento."
+        ]
+    },
+    "mapa": {
+        responses: [
+            "Este mapa interativo utiliza a biblioteca Leaflet.js. Os círculos vermelhos e laranjas representam focos de calor detectados nas últimas 24 horas pela NASA.",
+            "O mapa mostra sua posição (ponto azul) e os focos de incêndio ao redor. Você pode ajustar o raio de busca usando o controle deslizante."
+        ]
+    },
+    "nasa": {
+        responses: [
+            "A NASA utiliza o sistema FIRMS para gerenciar dados de incêndios globais. Nós nos conectamos diretamente aos servidores deles para trazer os dados mais recentes para você.",
+            "Os dados vêm dos instrumentos VIIRS (no satélite Suomi NPP) e MODIS (nos satélites Terra e Aqua), que são referências mundiais em detecção de fogo."
+        ]
+    },
+    "raio": {
+        responses: [
+            "O raio de visão pode ser ajustado entre 10km e 500km. Isso ajuda você a focar no que está acontecendo bem perto de você ou ver a situação geral do estado.",
+            "Ao aumentar o raio para 500km, o sistema faz uma busca em uma área muito maior da América do Sul para encontrar focos de calor."
+        ]
+    },
+    "tp": {
+        responses: [
+            "Tension Points (TP) são a alma do sistema de combate no Pantanale. Você os ganha ao 'pastar' (graze) perto de perigos. Quanto mais perto, mais rápido o TP sobe!",
+            "TP é sua munição. Use-o com sabedoria para disparar tiros normais ou economize para um Super Shot poderoso!"
+        ]
+    },
+    "supernova": {
+        responses: [
+            "A Supernova é um ataque crítico. Azul significa que a nave deve ficar estática. Laranja significa que deve estar em movimento constante. Sobreviver sem dano te dá TP máximo!",
+            "Durante a Supernova, o espaço se distorce. É o teste definitivo de reflexos. Lembre-se: Azul = Estátua, Laranja = Motorista."
+        ]
+    },
+    "pantanale": {
+        responses: [
+            "Pantanale é uma homenagem aos jogos estilo Undertale, mas com o objetivo de educar sobre a preservação do nosso bioma.",
+            "No Pantanale, você controla uma nave de monitoramento que evolui conforme você ganha experiência protegendo a região."
+        ]
+    },
+    "ajuda": {
+        responses: [
+            "Posso te explicar sobre: 1. Como o mapa funciona. 2. De onde vêm os dados da NASA. 3. Dicas de segurança contra fogo. 4. Segredos do mini-game Pantanale.",
+            "Diga palavras como 'NASA', 'Fogo', 'Níveis', 'Habilidades' ou 'Mapa' para eu te dar detalhes específicos."
+        ]
+    },
+    "niveis": {
+        responses: [
+            "O sistema de 20 níveis recompensa sua persistência. A cada nível, sua nave ganha novos atributos como velocidade, HP ou habilidades de tiro.",
+            "No LV 5 você ganha Tiro Duplo, no LV 13 Tiro Triplo, e no LV 20 você atinge a Forma Final com Asas de Luz!"
+        ]
+    },
+    "habilidades": {
+        responses: [
+            "Suas habilidades evoluem: Tiro Duplo (LV 5), Super Charge (LV 10), Tiro Triplo (LV 13), Regeneração (LV 15) e Mega Shot (LV 19).",
+            "Além das armas, você ganha velocidade e resistência. O TP Efficiency no LV 17 faz seus ataques especiais ficarem muito mais baratos."
+        ]
+    },
+    "quem": {
+        responses: [
+            "Fui criado para ser seu guia no SOS Pantanal. Sou uma inteligência artificial focada em dados ambientais e conscientização.",
+            "Eu sou o cérebro por trás do monitoramento. Analiso os dados da NASA e ajudo você a entender o que está acontecendo no bioma."
+        ]
+    },
+    "oi": { responses: ["Olá! Estou pronto para responder qualquer dúvida sobre o Pantanal ou o sistema. O que deseja saber?", "Oi! Em que posso ajudar na sua exploração hoje?"] },
+    "ola": { responses: ["Olá! Estou pronto para responder qualquer dúvida sobre o Pantanal ou o sistema. O que deseja saber?", "Oi! Em que posso ajudar na sua exploração hoje?"] }
 };
 
 aiBtn.addEventListener('click', () => aiModal.classList.replace('hidden', 'flex'));
@@ -324,23 +383,44 @@ aiForm.addEventListener('submit', (e) => {
     const query = aiInput.value.toLowerCase().trim();
     if (!query) return;
 
-    // User Message
     addChatMessage('user', aiInput.value);
     aiInput.value = '';
 
-    // Bot Response Logic
+    // Efeito de "Pensando"
+    const thinkingDiv = document.createElement('div');
+    thinkingDiv.className = 'bg-blue-600/10 border border-blue-600/20 p-3 rounded-xl mr-8 text-left text-blue-300 animate-pulse';
+    thinkingDiv.innerText = 'Pensando...';
+    thinkingDiv.id = 'ai-thinking';
+    aiChat.appendChild(thinkingDiv);
+    aiChat.scrollTop = aiChat.scrollHeight;
+
     setTimeout(() => {
-        let response = "Desculpe, ainda estou aprendendo sobre isso. Tente perguntar sobre 'mapa', 'fogo', 'NASA', 'raio' ou sobre o 'mini-game'.";
-        
+        const thinking = document.getElementById('ai-thinking');
+        if (thinking) thinking.remove();
+
+        let bestMatch = null;
+        let maxWeight = 0;
+
         for (let key in aiKnowledge) {
             if (query.includes(key)) {
-                response = aiKnowledge[key];
-                break;
+                // Sistema de peso simples: chaves maiores valem mais
+                if (key.length > maxWeight) {
+                    maxWeight = key.length;
+                    const responses = aiKnowledge[key].responses;
+                    bestMatch = responses[Math.floor(Math.random() * responses.length)];
+                }
             }
         }
+
+        let response = bestMatch || "Interessante... Minha base de dados ainda é limitada, mas posso falar muito sobre a NASA, queimadas, o mapa ou as 20 fases do nosso jogo. Tente usar uma dessas palavras!";
         
+        // Simular uma resposta mais "inteligente" com variações
+        if (!bestMatch && query.length > 20) {
+            response = "Essa é uma pergunta complexa. Como assistente do SOS Pantanal, meu foco é em monitoramento e segurança. Posso te ajudar com dados técnicos da NASA ou dicas do mini-game?";
+        }
+
         addChatMessage('bot', response);
-    }, 500);
+    }, 800 + Math.random() * 1000); // Tempo de resposta variável para parecer humano
 });
 
 function addChatMessage(role, text) {
