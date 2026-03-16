@@ -489,6 +489,27 @@ let immunityTimer = 0;
 let level = 1;
 let enemiesDefeated = 0;
 
+// Final Boss State
+let bossActive = false;
+let boss = {
+    x: 500,
+    y: 150,
+    hp: 1000,
+    maxHp: 1000,
+    size: 100,
+    phase: 1,
+    timer: 0,
+    dialogue: "",
+    dialogueTimer: 0
+};
+const bossDialogues = [
+    "Você acha que pode apagar o fogo do destino?",
+    "O Pantanal é apenas o começo da cinza.",
+    "Sinta o calor de mil galáxias!",
+    "Sua determinação é... irritante.",
+    "EU SOU A ENTROPIA QUE QUEIMA O MUNDO!"
+];
+
 // Supernova States
 let supernovaState = 'none'; // 'none', 'warning', 'active'
 let supernovaType = 'blue'; // 'blue' (stay still), 'orange' (keep moving)
@@ -578,39 +599,55 @@ toggleAudioBtn.addEventListener('click', () => {
     }
 });
 
+function startBossFight() {
+    bossActive = true;
+    hazards = []; // Limpa inimigos menores
+    boss.hp = 1000;
+    boss.x = 500; // Começa fora da tela e entra
+    boss.y = 150;
+    boss.timer = 0;
+    boss.phase = 1;
+    boss.dialogue = "Então você chegou ao fim da linha...";
+    boss.dialogueTimer = 180;
+    switchMusic(musicHigh); // Música épica
+}
+
 function spawnHazards() {
     if (!gameRunning) return;
     
     frameCount++;
     
-    // Trigger Supernova every ~10 seconds
-    if (frameCount % 600 === 0 && supernovaState === 'none') {
-        supernovaState = 'warning';
-        supernovaType = Math.random() > 0.5 ? 'blue' : 'orange';
-        supernovaTimer = 90; // 1.5 seconds warning
-    }
+    // Inimigos normais só aparecem se o Boss não estiver ativo
+    if (!bossActive) {
+        // Trigger Supernova every ~10 seconds
+        if (frameCount % 600 === 0 && supernovaState === 'none') {
+            supernovaState = 'warning';
+            supernovaType = Math.random() > 0.5 ? 'blue' : 'orange';
+            supernovaTimer = 90; // 1.5 seconds warning
+        }
 
-    // Asteroides Normais (only spawn if no supernova is active)
-    if (supernovaState === 'none' && frameCount % 40 === 0) {
-        const side = Math.floor(Math.random() * 4);
-        let h = { x: 0, y: 0, vx: 0, vy: 0, size: 15 + Math.random() * 15, type: 'asteroid', color: '#888' };
-        if (side === 0) { h.x = Math.random() * 400; h.y = -50; h.vy = 2 + Math.random() * 2; }
-        else if (side === 1) { h.x = Math.random() * 400; h.y = 350; h.vy = -(2 + Math.random() * 2); }
-        else if (side === 2) { h.x = -50; h.y = Math.random() * 300; h.vx = 2 + Math.random() * 2; }
-        else { h.x = 450; h.y = Math.random() * 300; h.vx = -(2 + Math.random() * 2); }
-        hazards.push(h);
-    }
+        // Asteroides Normais (only spawn if no supernova is active)
+        if (supernovaState === 'none' && frameCount % 40 === 0) {
+            const side = Math.floor(Math.random() * 4);
+            let h = { x: 0, y: 0, vx: 0, vy: 0, size: 15 + Math.random() * 15, type: 'asteroid', color: '#888' };
+            if (side === 0) { h.x = Math.random() * 400; h.y = -50; h.vy = 2 + Math.random() * 2; }
+            else if (side === 1) { h.x = Math.random() * 400; h.y = 350; h.vy = -(2 + Math.random() * 2); }
+            else if (side === 2) { h.x = -50; h.y = Math.random() * 300; h.vx = 2 + Math.random() * 2; }
+            else { h.x = 450; h.y = Math.random() * 300; h.vx = -(2 + Math.random() * 2); }
+            hazards.push(h);
+        }
 
-    // Asteroides Verdes (Cura)
-    if (supernovaState === 'none' && frameCount % 200 === 0) {
-        let h = { x: Math.random() * 400, y: -50, vx: 0, vy: 2, size: 20, type: 'heal', color: '#22c55e' };
-        hazards.push(h);
-    }
+        // Asteroides Verdes (Cura)
+        if (supernovaState === 'none' && frameCount % 200 === 0) {
+            let h = { x: Math.random() * 400, y: -50, vx: 0, vy: 2, size: 20, type: 'heal', color: '#22c55e' };
+            hazards.push(h);
+        }
 
-    // Galáxia Boss
-    if (supernovaState === 'none' && frameCount % 400 === 0) {
-        let h = { x: 450, y: Math.random() * 200 + 50, vx: -1, vy: 0, size: 70, type: 'galaxy', color: '#f0f', hp: 10 };
-        hazards.push(h);
+        // Galáxia Boss
+        if (supernovaState === 'none' && frameCount % 400 === 0) {
+            let h = { x: 450, y: Math.random() * 200 + 50, vx: -1, vy: 0, size: 70, type: 'galaxy', color: '#f0f', hp: 10 };
+            hazards.push(h);
+        }
     }
 
     requestAnimationFrame(spawnHazards);
@@ -669,7 +706,7 @@ function updateGame() {
 
     // Lógica de Música Dinâmica
     let bossOnScreen = hazards.some(h => h.type === 'galaxy');
-    if (supernovaState !== 'none' || bossOnScreen) {
+    if (supernovaState !== 'none' || bossOnScreen || bossActive) {
         switchMusic(musicHigh);
     } else if (hazards.length > 5) {
         switchMusic(musicMid);
@@ -779,6 +816,11 @@ function updateGame() {
         if (immunityTimer <= 0) {
             isImmune = false;
         }
+    }
+
+    // Boss Logic
+    if (bossActive) {
+        updateBoss();
     }
 
     // LV 15: Regeneração (1 HP a cada 2 segundos / 120 frames)
@@ -906,6 +948,25 @@ function updateGame() {
 
         if (h.x < -100 || h.x > 500 || h.y < -100 || h.y > 400) hazards.splice(i, 1);
     });
+
+    // Colisão das Balas com o Boss Final
+    if (bossActive) {
+        playerBullets.forEach((pb, pbi) => {
+            const dx = pb.x - boss.x;
+            const dy = pb.y - boss.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < (boss.size/2 + pb.size)) {
+                if (!pb.isSuper) playerBullets.splice(pbi, 1);
+                const damage = pb.isSuper ? 15 : 3;
+                boss.hp -= damage;
+                
+                if (boss.hp <= 0) {
+                    bossActive = false;
+                    victory();
+                }
+            }
+        });
+    }
 
     score++;
     document.getElementById('highScore').innerText = Math.floor(score / 10);
@@ -1041,12 +1102,157 @@ function drawShip() {
     }
 }
 
-function updateHP() {
-    const percent = (hp / maxHp) * 100;
-    hpBar.style.width = percent + '%';
-    hpText.innerText = `${Math.ceil(hp)} / ${maxHp}`;
-    document.getElementById('playerLevel').innerText = level;
+function updateBoss() {
+    // Entrada do Boss
+    if (boss.x > 300) {
+        boss.x -= 2;
+    } else {
+        // Movimento de flutuação (Senoide)
+        boss.y = 150 + Math.sin(frameCount * 0.05) * 50;
+        
+        // Timer de ataque
+        boss.timer++;
+        
+        // Padrões de Ataque
+        if (boss.timer % 120 === 0) {
+            spawnBossAttack();
+        }
+
+        // Diálogos Aleatórios
+        if (boss.dialogueTimer > 0) {
+            boss.dialogueTimer--;
+        } else if (Math.random() < 0.005) {
+            boss.dialogue = bossDialogues[Math.floor(Math.random() * bossDialogues.length)];
+            boss.dialogueTimer = 120;
+        }
+    }
+
+    drawBoss();
 }
+
+function drawBoss() {
+    // Corpo do Boss (Uma galáxia gigante e sombria)
+    ctx.save();
+    ctx.translate(boss.x, boss.y);
+    ctx.rotate(frameCount * 0.02);
+    
+    // Aura externa
+    const aura = ctx.createRadialGradient(0, 0, 0, 0, 0, boss.size);
+    aura.addColorStop(0, 'rgba(255, 0, 0, 0.2)');
+    aura.addColorStop(0.5, 'rgba(128, 0, 128, 0.1)');
+    aura.addColorStop(1, 'transparent');
+    ctx.fillStyle = aura;
+    ctx.beginPath();
+    ctx.arc(0, 0, boss.size, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Núcleo
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, boss.size/2);
+    grad.addColorStop(0, '#fff');
+    grad.addColorStop(0.2, '#ff0000');
+    grad.addColorStop(0.5, '#4b0082');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    for(let i=0; i<Math.PI*2; i+=0.1) {
+        let r = (boss.size/2) * (1 + Math.sin(i * 5 + frameCount * 0.1) * 0.2);
+        ctx.lineTo(Math.cos(i)*r, Math.sin(i)*r);
+    }
+    ctx.fill();
+    ctx.restore();
+
+    // Barra de Vida do Boss
+    const barWidth = 300;
+    const barHeight = 10;
+    const barX = (canvas.width - barWidth) / 2;
+    const barY = 20;
+    
+    ctx.fillStyle = '#333';
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+    
+    const hpPercent = boss.hp / boss.maxHp;
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
+    ctx.strokeStyle = '#fff';
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px "Determination Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText("ENTROPIA SUPREMA", canvas.width/2, barY - 5);
+
+    // Balão de Diálogo (Estilo Undertale)
+    if (boss.dialogueTimer > 0) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(boss.x - 120, boss.y - 100, 150, 50);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(boss.x - 120, boss.y - 100, 150, 50);
+        
+        ctx.fillStyle = '#000';
+        ctx.font = '10px "Determination Mono", monospace';
+        ctx.textAlign = 'left';
+        // Quebra de linha simples
+        const words = boss.dialogue.split(' ');
+        let line = '';
+        let y = boss.y - 85;
+        for(let n = 0; n < words.length; n++) {
+            let testLine = line + words[n] + ' ';
+            if (testLine.length > 25) {
+                ctx.fillText(line, boss.x - 115, y);
+                line = words[n] + ' ';
+                y += 12;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, boss.x - 115, y);
+    }
+}
+
+function spawnBossAttack() {
+     const pattern = Math.floor(Math.random() * 3);
+     
+     if (pattern === 0) {
+         // Chuva de Meteoros Vermelhos
+         for(let i=0; i<5; i++) {
+             hazards.push({
+                 x: boss.x,
+                 y: boss.y,
+                 vx: - (3 + Math.random() * 4),
+                 vy: -2 + Math.random() * 4,
+                 size: 20,
+                 type: 'asteroid',
+                 color: '#ff4400'
+             });
+         }
+     } else if (pattern === 1) {
+         // Disparo de Anéis
+         for(let i=0; i<Math.PI*2; i+=Math.PI/4) {
+             hazards.push({
+                 x: boss.x,
+                 y: boss.y,
+                 vx: Math.cos(i) * 3,
+                 vy: Math.sin(i) * 3,
+                 size: 25,
+                 type: 'asteroid',
+                 color: '#4b0082'
+             });
+         }
+     } else {
+         // Supernova Rápida (Sempre Azul ou Laranja)
+         supernovaState = 'warning';
+         supernovaType = Math.random() > 0.5 ? 'blue' : 'orange';
+         supernovaTimer = 60;
+     }
+ }
+ 
+ function updateHP() {
+     const percent = (hp / maxHp) * 100;
+     hpBar.style.width = percent + '%';
+     hpText.innerText = `${Math.ceil(hp)} / ${maxHp}`;
+     document.getElementById('playerLevel').innerText = level;
+ }
 
 function updateTP() {
     const percent = (tp / maxTp) * 100;
@@ -1057,7 +1263,9 @@ function updateTP() {
 function checkLevelUp() {
     if (enemiesDefeated >= 10) {
         if (level >= 20) {
-            victory();
+            if (!bossActive) {
+                startBossFight();
+            }
             return;
         }
         level++;
@@ -1152,6 +1360,7 @@ startGameBtn.addEventListener('click', () => {
     hazards = [];
     playerBullets = [];
     supernovaState = 'none';
+    bossActive = false;
     ship = { x: 200, y: 150, width: 30, height: 20, speed: 4 };
     updateHP();
     updateTP();
