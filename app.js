@@ -435,10 +435,12 @@ window.addEventListener('keyup', (e) => {
 });
 
 function superShoot() {
-    if (tp >= 10) {
-        tp -= 10;
+    const cost = (level >= 17) ? 7 : 10;
+    if (tp >= cost) {
+        tp -= cost;
         updateTP();
-        playerBullets.push({ x: ship.x + 15, y: ship.y, vx: 15, vy: 0, size: 20, isSuper: true });
+        const size = (level >= 19) ? 35 : 20;
+        playerBullets.push({ x: ship.x + 15, y: ship.y, vx: 15, vy: 0, size: size, isSuper: true });
     }
 }
 
@@ -446,7 +448,25 @@ function shoot() {
     if (tp >= 1) {
         tp -= 1;
         updateTP();
-        playerBullets.push({ x: ship.x + 15, y: ship.y, vx: 10, vy: 0, size: 5, isSuper: false });
+        
+        const bulletSize = (level >= 4) ? 7 : 5;
+        const bulletSpeed = (level >= 9) ? 15 : 10;
+        
+        // Tiro Simples (LV 1-4)
+        if (level < 5) {
+            playerBullets.push({ x: ship.x + 15, y: ship.y, vx: bulletSpeed, vy: 0, size: bulletSize, isSuper: false });
+        } 
+        // Tiro Duplo (LV 5-12)
+        else if (level < 13) {
+            playerBullets.push({ x: ship.x + 15, y: ship.y - 5, vx: bulletSpeed, vy: 0, size: bulletSize, isSuper: false });
+            playerBullets.push({ x: ship.x + 15, y: ship.y + 5, vx: bulletSpeed, vy: 0, size: bulletSize, isSuper: false });
+        }
+        // Tiro Triplo (LV 13+)
+        else {
+            playerBullets.push({ x: ship.x + 15, y: ship.y - 8, vx: bulletSpeed, vy: 0, size: bulletSize, isSuper: false });
+            playerBullets.push({ x: ship.x + 15, y: ship.y, vx: bulletSpeed, vy: 0, size: bulletSize, isSuper: false });
+            playerBullets.push({ x: ship.x + 15, y: ship.y + 8, vx: bulletSpeed, vy: 0, size: bulletSize, isSuper: false });
+        }
     }
 }
 
@@ -597,7 +617,8 @@ function updateGame() {
 
     // Handle Charge Mechanic
     if (keys['KeyZ'] || keys['Space'] || keys['Enter']) {
-        chargeTime++;
+        const chargeSpeed = (level >= 10) ? 1.5 : 1;
+        chargeTime += chargeSpeed;
         if (chargeTime > 0) {
             const chargeRatio = Math.min(1, chargeTime / CHARGE_REQUIRED);
             ctx.strokeStyle = `rgba(255, 235, 59, ${chargeRatio})`;
@@ -678,6 +699,12 @@ function updateGame() {
         if (immunityTimer <= 0) {
             isImmune = false;
         }
+    }
+
+    // LV 15: Regeneração (1 HP a cada 2 segundos / 120 frames)
+    if (level >= 15 && frameCount % 120 === 0 && hp < maxHp) {
+        hp = Math.min(maxHp, hp + 1);
+        updateHP();
     }
 
     // Desenhar Nave
@@ -810,42 +837,124 @@ function drawShip() {
         ctx.save();
         ctx.translate(ship.x, ship.y);
 
-        // Base da Nave
-        ctx.fillStyle = '#00f5ff';
+        // Cor base da nave muda com o nível
+        let baseColor = '#00f5ff'; // Ciano inicial
+        if (level >= 5) baseColor = '#00ff88'; // Verde-água
+        if (level >= 10) baseColor = '#ffeb3b'; // Dourado
+        if (level >= 15) baseColor = '#f0f';    // Roxo
+        if (level >= 20) baseColor = '#fff';    // Branco Divino
+
+        ctx.fillStyle = baseColor;
+        ctx.shadowBlur = (level >= 10) ? 10 : 0;
+        ctx.shadowColor = baseColor;
+
+        // Desenho Principal da Nave (Evolui com o nível)
         ctx.beginPath();
-        ctx.moveTo(15, 0);
-        ctx.lineTo(-15, -10);
-        ctx.lineTo(-10, 0);
-        ctx.lineTo(-15, 10);
+        if (level < 5) {
+            // Forma básica (Triângulo)
+            ctx.moveTo(15, 0);
+            ctx.lineTo(-15, -10);
+            ctx.lineTo(-10, 0);
+            ctx.lineTo(-15, 10);
+        } else if (level < 10) {
+            // Forma com Asas Pequenas
+            ctx.moveTo(18, 0);
+            ctx.lineTo(-10, -8);
+            ctx.lineTo(-18, -15);
+            ctx.lineTo(-12, 0);
+            ctx.lineTo(-18, 15);
+            ctx.lineTo(-10, 8);
+        } else if (level < 15) {
+            // Forma Elegante (Estilo Delta)
+            ctx.moveTo(20, 0);
+            ctx.lineTo(-5, -10);
+            ctx.lineTo(-20, -20);
+            ctx.lineTo(-10, -5);
+            ctx.lineTo(-10, 5);
+            ctx.lineTo(-20, 20);
+            ctx.lineTo(-5, 10);
+        } else {
+            // Forma Avançada (Cruz/Estrela)
+            ctx.moveTo(25, 0);
+            ctx.lineTo(5, -10);
+            ctx.lineTo(-5, -25);
+            ctx.lineTo(-10, -10);
+            ctx.lineTo(-25, 0);
+            ctx.lineTo(-10, 10);
+            ctx.lineTo(-5, 25);
+            ctx.lineTo(5, 10);
+        }
         ctx.closePath();
         ctx.fill();
 
-        // Detalhes baseados no nível
-        if (level >= 3) {
-            ctx.fillStyle = '#ffeb3b'; // Detalhes dourados
-            ctx.fillRect(-5, -2, 10, 4);
+        // Detalhes Adicionais por Nível
+        
+        // LV 2+: Propulsor Traseiro
+        if (level >= 2) {
+            ctx.fillStyle = (frameCount % 4 < 2) ? '#ff4400' : '#ffcc00';
+            ctx.fillRect(-15, -3, 5, 6);
         }
-        if (level >= 5) {
-            ctx.fillStyle = '#f0f'; // Detalhes roxos
+
+        // LV 4+: Cockpit
+        if (level >= 4) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
             ctx.beginPath();
-            ctx.arc(15, 0, 3, 0, Math.PI * 2);
+            ctx.arc(2, 0, 4, 0, Math.PI * 2);
             ctx.fill();
         }
+
+        // LV 7+: Listras de Corrida
         if (level >= 7) {
             ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(-15, -10);
-            ctx.lineTo(-20, -15);
-            ctx.moveTo(-15, 10);
-            ctx.lineTo(-20, 15);
+            ctx.moveTo(-5, -5);
+            ctx.lineTo(5, -5);
+            ctx.moveTo(-5, 5);
+            ctx.lineTo(5, 5);
             ctx.stroke();
         }
-        if (level >= 9) {
-            ctx.fillStyle = '#fff';
+
+        // LV 11+: Escudo de Partículas (Aura)
+        if (level >= 11) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 + Math.sin(frameCount * 0.1) * 0.2})`;
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(0, 0, 2, 0, Math.PI * 2);
+            ctx.arc(0, 0, 30, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // LV 14+: Canhões Laterais
+        if (level >= 14) {
+            ctx.fillStyle = '#888';
+            ctx.fillRect(0, -15, 8, 4);
+            ctx.fillRect(0, 11, 8, 4);
+        }
+
+        // LV 17+: Propulsores de Asa
+        if (level >= 17) {
+            ctx.fillStyle = '#00f5ff';
+            ctx.beginPath();
+            ctx.arc(-10, -15, 3, 0, Math.PI * 2);
+            ctx.arc(-10, 15, 3, 0, Math.PI * 2);
             ctx.fill();
+        }
+
+        // LV 20: FORMA FINAL (Asas de Luz)
+        if (level >= 20) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(-10, 0);
+            ctx.lineTo(-40, -40);
+            ctx.moveTo(-10, 0);
+            ctx.lineTo(-40, 40);
+            ctx.stroke();
+            
+            // Halo de Luz
+            ctx.beginPath();
+            ctx.arc(0, 0, 40, frameCount*0.1, frameCount*0.1 + 1);
+            ctx.stroke();
         }
 
         ctx.restore();
@@ -867,15 +976,39 @@ function updateTP() {
 
 function checkLevelUp() {
     if (enemiesDefeated >= 10) {
-        if (level >= 10) {
+        if (level >= 20) {
             victory();
             return;
         }
         level++;
         enemiesDefeated = 0;
-        maxHp = Math.floor(maxHp * 1.10);
-        hp = maxHp; // Cura total ao subir de nível
+        
+        // Atributos base
+        maxHp = Math.floor(maxHp * 1.05);
+        hp = maxHp;
+        
+        // Aplicação de Habilidades Específicas por Nível
+        applyLevelUpBonus();
+        
         updateHP();
+        
+        // Feedback visual de Level Up
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 30px "Determination Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`LEVEL UP! LV ${level}`, canvas.width/2, canvas.height/2);
+    }
+}
+
+function applyLevelUpBonus() {
+    switch(level) {
+        case 2: ship.speed += 0.5; break;
+        case 3: maxHp += 20; hp = maxHp; break;
+        case 6: ship.speed += 0.5; break;
+        case 8: maxHp += 20; hp = maxHp; break;
+        case 12: maxHp += 30; hp = maxHp; break;
+        case 16: ship.speed += 1; break;
+        case 18: immunityTimer = 120; break; // Bônus temporário no level up
     }
 }
 
