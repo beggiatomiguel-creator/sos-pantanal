@@ -24,6 +24,11 @@
             <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAARgAAAEZCAYAAACwBCpaAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJc0ZcwAADsQAAA7EAZUrDhsAAAFTSURBVHhe7cEBDQAAAMIg+6e+g9gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB42wAATQEAAFrEEgAAAABJRU5ErkJggg==" alt="SOS Pantanal Logo" class="h-16">
         </a>
         <div class="flex items-center gap-4">
+            <button id="chatBtn" class="text-slate-400 hover:text-white flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 transition-all relative">
+                <i data-lucide="message-square"></i>
+                Chat Global
+                <span id="chatBadge" class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-900 hidden"></span>
+            </button>
             <button id="aiBtn" class="text-slate-400 hover:text-white flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 transition-all">
                 <i data-lucide="bot"></i>
                 Assistente IA
@@ -176,6 +181,41 @@
                     Enviar Relatório
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- Global Chat Modal -->
+    <div id="chatModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1500] hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[600px]">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                <div class="flex flex-col">
+                    <h3 class="text-xl font-bold flex items-center gap-2">
+                        <i data-lucide="message-square" class="text-green-400"></i>
+                        Chat Comunitário
+                    </h3>
+                    <span class="text-[10px] text-slate-500 uppercase tracking-widest">Conectado ao vivo</span>
+                </div>
+                <button id="closeChat" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div id="chatMessages" class="flex-grow overflow-y-auto p-6 space-y-4 text-sm scrollbar-thin scrollbar-thumb-slate-700">
+                <!-- Messages will appear here -->
+            </div>
+
+            <div class="p-4 border-t border-slate-800 bg-slate-900 space-y-3">
+                <div id="chatSetup" class="flex gap-2 items-center">
+                    <input type="text" id="chatUser" placeholder="Seu apelido..." class="w-1/3 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+                    <span class="text-[10px] text-slate-500">Defina um nome para começar</span>
+                </div>
+                <form id="chatForm" class="flex gap-2">
+                    <input type="text" id="chatInput" placeholder="Digite uma mensagem..." class="flex-grow bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white p-3 rounded-xl shadow-lg transition-all">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 

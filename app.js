@@ -13,7 +13,8 @@ if (apiKeyInput) {
 
 // Coordenadas do Pantanal
 const PANTANAL_AREA = '-59,-22,-54,-16'; 
-const COMMUNITY_REPORTS_URL = 'https://kvdb.io/ANv9p9Y6yY8z2Z3z2z2z2z/sos_pantanal_reports'; // Bucket público compartilhado
+const COMMUNITY_REPORTS_URL = 'https://kvdb.io/ANv9p9Y6yY8z2Z3z2z2z2z/sos_pantanal_reports'; 
+const GLOBAL_CHAT_URL = 'https://kvdb.io/ANv9p9Y6yY8z2Z3z2z2z2z/sos_pantanal_chat'; // Bucket para o chat
 
 let map;
 let userMarker;
@@ -343,6 +344,120 @@ if (reportForm) {
         renderMapState(); // Atualiza o mapa para mostrar o novo reporte
     });
 }
+
+// Global Chat Logic
+const chatBtn = document.getElementById('chatBtn');
+const chatModal = document.getElementById('chatModal');
+const closeChat = document.getElementById('closeChat');
+const chatForm = document.getElementById('chatForm');
+const chatInput = document.getElementById('chatInput');
+const chatUser = document.getElementById('chatUser');
+const chatMessages = document.getElementById('chatMessages');
+const chatBadge = document.getElementById('chatBadge');
+
+let lastMessageCount = 0;
+let isChatOpen = false;
+
+// Recupera apelido salvo
+chatUser.value = localStorage.getItem('chat_username') || '';
+
+chatBtn.addEventListener('click', () => {
+    chatModal.classList.replace('hidden', 'flex');
+    chatBadge.classList.add('hidden');
+    isChatOpen = true;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+closeChat.addEventListener('click', () => {
+    chatModal.classList.replace('flex', 'hidden');
+    isChatOpen = false;
+});
+
+chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = chatInput.value.trim();
+    const user = chatUser.value.trim() || 'Anônimo';
+    
+    if (!text) return;
+    localStorage.setItem('chat_username', user);
+
+    const msgData = {
+        user: user,
+        text: text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        id: Date.now()
+    };
+
+    chatInput.value = '';
+
+    try {
+        // Busca mensagens existentes
+        const getRes = await fetch(GLOBAL_CHAT_URL);
+        let history = [];
+        if (getRes.ok) {
+            history = await getRes.json();
+        }
+        
+        // Mantém apenas as últimas 50 mensagens
+        history.push(msgData);
+        if (history.length > 50) history.shift();
+        
+        await fetch(GLOBAL_CHAT_URL, {
+            method: 'PUT',
+            body: JSON.stringify(history)
+        });
+        
+        fetchMessages(); // Atualiza localmente
+    } catch (e) {
+        console.error("Erro ao enviar mensagem:", e);
+    }
+});
+
+async function fetchMessages() {
+    try {
+        const res = await fetch(GLOBAL_CHAT_URL);
+        if (res.ok) {
+            const history = await res.json();
+            
+            // Verifica se há novas mensagens para o badge
+            if (history.length > lastMessageCount && !isChatOpen) {
+                chatBadge.classList.remove('hidden');
+            }
+            
+            if (history.length !== lastMessageCount) {
+                renderChat(history);
+                lastMessageCount = history.length;
+            }
+        }
+    } catch (e) {
+        console.warn("Erro ao buscar mensagens do chat");
+    }
+}
+
+function renderChat(history) {
+    chatMessages.innerHTML = '';
+    history.forEach(msg => {
+        const div = document.createElement('div');
+        const isMe = msg.user === chatUser.value;
+        
+        div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
+        div.innerHTML = `
+            <div class="flex items-baseline gap-2">
+                <span class="text-[10px] font-bold text-slate-400">${msg.user}</span>
+                <span class="text-[9px] text-slate-600">${msg.time}</span>
+            </div>
+            <div class="mt-1 px-3 py-2 rounded-2xl max-w-[80%] ${isMe ? 'bg-green-600 text-white rounded-tr-none' : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700'}">
+                ${msg.text}
+            </div>
+        `;
+        chatMessages.appendChild(div);
+    });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Polling do chat a cada 4 segundos
+setInterval(fetchMessages, 4000);
+fetchMessages(); // Carga inicial
 
 // IA Assistant Logic
 const aiBtn = document.getElementById('aiBtn');
