@@ -326,6 +326,7 @@ let enemiesDefeated = 0;
 let supernovaState = 'none'; // 'none', 'warning', 'active'
 let supernovaType = 'blue'; // 'blue' (stay still), 'orange' (keep moving)
 let supernovaTimer = 0;
+let supernovaDamaged = false; // Rastreia se tomou dano durante a supernova
 
 let chargeTime = 0;
 const CHARGE_REQUIRED = 60; // 1 segundo (60 frames)
@@ -546,6 +547,7 @@ function updateGame() {
         if (supernovaTimer <= 0) {
             supernovaState = 'active';
             supernovaTimer = 60; // 1 second active
+            supernovaDamaged = false; // Resetar rastreador de dano
         }
     } else if (supernovaState === 'active') {
         supernovaTimer--;
@@ -556,15 +558,31 @@ function updateGame() {
         if (!isImmune) {
             if (supernovaType === 'blue' && isMoving) {
                 hp -= 0.6; // Dano reduzido
+                supernovaDamaged = true;
                 updateHP();
             } else if (supernovaType === 'orange' && !isMoving) {
                 hp -= 0.6; // Dano reduzido
+                supernovaDamaged = true;
                 updateHP();
             }
         }
 
         if (hp <= 0) gameOver();
-        if (supernovaTimer <= 0) supernovaState = 'none';
+        
+        if (supernovaTimer <= 0) {
+            // Se sobreviveu sem tomar dano, ganha TP máximo!
+            if (!supernovaDamaged) {
+                tp = maxTp;
+                updateTP();
+                
+                // Feedback Visual
+                ctx.fillStyle = '#ffeb3b';
+                ctx.font = 'bold 30px "Determination Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('TP MAX!!', canvas.width/2, canvas.height/2);
+            }
+            supernovaState = 'none';
+        }
     }
 
     // Handle Immunity
@@ -683,6 +701,7 @@ function updateGame() {
                 updateHP();
             } else if (!isImmune) {
                 hp -= (h.type === 'galaxy' ? 15 : 5);
+                if (supernovaState === 'active') supernovaDamaged = true;
                 hazards.splice(i, 1);
                 isImmune = true;
                 immunityTimer = 90; // 1.5 segundos de imunidade
