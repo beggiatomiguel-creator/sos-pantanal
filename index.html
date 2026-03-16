@@ -15,7 +15,8 @@
         .undertale-font { font-family: 'Determination Mono', 'Courier New', monospace; }
     </style>
 </head>
-<body class="dark-theme min-h-screen flex flex-col font-sans">
+<body class="dark-theme min-h-screen flex flex-col font-sans transition-all duration-75">
+    <div id="bloodOverlay" class="fixed inset-0 bg-red-600/50 pointer-events-none z-[9999] hidden"></div>
 
     <!-- Header -->
     <header class="p-6 flex items-center justify-between border-b border-slate-800">

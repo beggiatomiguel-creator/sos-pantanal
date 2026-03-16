@@ -1661,9 +1661,20 @@ function victoryGenocide() {
     ctx.font = 'bold 40px "Determination Mono", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('FINAL GENOCIDA', canvas.width/2, 100);
-    ctx.font = '20px "Determination Mono", monospace';
-    ctx.fillText('Você escolheu a destruição total.', canvas.width/2, 160);
-    setTimeout(() => stopGame(), 5000);
+    ctx.font = '24px "Determination Mono", monospace';
+    ctx.fillText('VOCÊ É O VERDADEIRO MONSTRO.', canvas.width/2, 160);
+    
+    setTimeout(() => {
+        // Efeito de sangue na tela de início
+        const overlay = document.getElementById('bloodOverlay');
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 30); // 30 milissegundos
+        }
+        stopGame();
+    }, 5000);
 }
 
 function victoryPacifist() {
