@@ -1,208 +1,100 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOS Pantanal - Alerta de Incêndios</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>SOS Pantanal - TEST</title>
+    <style>
+        body { background: #1e293b; color: white; font-family: Arial; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .card { background: #334155; padding: 20px; margin: 20px 0; border-radius: 10px; }
+        .button { background: #dc2626; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .button:hover { background: #b91c1c; }
+        .chat { background: #0f172a; padding: 15px; height: 200px; overflow-y: auto; border-radius: 5px; margin: 10px 0; }
+        input { background: #1e293b; color: white; border: 1px solid #475569; padding: 10px; border-radius: 5px; width: 100%; }
+    </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen">
-    <div class="container mx-auto p-4 max-w-4xl">
-        <!-- Header -->
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-red-500 mb-2">🔥 SOS PANTANAL</h1>
-            <p class="text-slate-400">Sistema de Alerta de Incêndios em Tempo Real</p>
-        </header>
-
-        <!-- Status -->
-        <div class="bg-slate-800 p-6 rounded-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4">📍 Status da Sua Região</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <p class="text-sm text-slate-400">Localização:</p>
-                    <p class="font-semibold">Corumbá, MS</p>
-                </div>
-                <div>
-                    <p class="text-sm text-slate-400">Incêndios Ativos:</p>
-                    <p class="font-semibold text-red-500 text-2xl">3</p>
-                </div>
-            </div>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 SOS PANTANAL</h1>
+            <p>Sistema de Alerta de Incêndios</p>
         </div>
 
-        <!-- Emergency Contacts -->
-        <div class="bg-red-900 p-6 rounded-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4">🚨 Contatos de Emergência</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="text-center">
-                    <p class="text-2xl font-bold">193</p>
-                    <p class="text-sm">Corpo de Bombeiros</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-2xl font-bold">0800 61 8080</p>
-                    <p class="text-sm">IBAMA/Prevfogo</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-2xl font-bold">190</p>
-                    <p class="text-sm">Polícia</p>
-                </div>
-            </div>
+        <div class="card">
+            <h2>🚨 Contatos de Emergência</h2>
+            <p><strong>Bombeiros:</strong> 193</p>
+            <p><strong>IBAMA:</strong> 0800 61 8080</p>
+            <p><strong>Polícia:</strong> 190</p>
         </div>
 
-        <!-- AI Assistant -->
-        <div class="bg-slate-800 p-6 rounded-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4">🤖 Assistente Virtual</h2>
-            <div id="chatMessages" class="bg-slate-900 p-4 rounded h-64 overflow-y-auto mb-4">
-                <div class="mb-3">
-                    <p class="text-purple-400">🤖 Assistente: Olá! Sou o assistente do Pantanal. Como posso ajudar?</p>
-                </div>
+        <div class="card">
+            <h2>🤖 Assistente Virtual</h2>
+            <div id="chat" class="chat">
+                <div><strong>🤖 IA:</strong> Olá! Como posso ajudar?</div>
             </div>
-            <div class="flex gap-2">
-                <input type="text" id="userInput" placeholder="Digite sua pergunta..." class="flex-1 p-2 bg-slate-700 rounded">
-                <button onclick="sendMessage()" class="px-4 py-2 bg-purple-600 rounded hover:bg-purple-700">Enviar</button>
-            </div>
+            <input type="text" id="input" placeholder="Digite sua pergunta..." onkeypress="if(event.key==='Enter')send()">
+            <br><br>
+            <button class="button" onclick="send()">Enviar</button>
         </div>
 
-        <!-- Games -->
-        <div class="bg-slate-800 p-6 rounded-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4">🎮 Jogos Educativos</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-slate-700 p-4 rounded text-center">
-                    <h3 class="font-semibold mb-2">🔥 PANTANALE</h3>
-                    <p class="text-sm text-slate-400 mb-3">Jogo de sobrevivência</p>
-                    <button onclick="playGame('pantale')" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700">Jogar</button>
-                </div>
-                <div class="bg-slate-700 p-4 rounded text-center">
-                    <h3 class="font-semibold mb-2">🧠 Quiz Pantanal</h3>
-                    <p class="text-sm text-slate-400 mb-3">Teste seus conhecimentos</p>
-                    <button onclick="playGame('quiz')" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Jogar</button>
-                </div>
-            </div>
+        <div class="card">
+            <h2>🎮 Jogos</h2>
+            <button class="button" onclick="alert('🔥 PANTANALE - Jogo de sobrevivência! Use as setas para mover e ESPAÇO para atirar!')">Jogar PANTANALE</button>
+            <button class="button" onclick="startQuiz()" style="margin-left: 10px;">Quiz Pantanal</button>
         </div>
 
-        <!-- Info -->
-        <div class="bg-slate-800 p-6 rounded-lg">
-            <h2 class="text-xl font-semibold mb-4">📚 Sobre o Pantanal</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <h3 class="font-semibold text-green-400 mb-2">🌿 Biodiversidade</h3>
-                    <p class="text-sm text-slate-400">Maior área alagada do mundo com mais de 1.000 espécies de animais.</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-blue-400 mb-2">🛰️ Monitoramento</h3>
-                    <p class="text-sm text-slate-400">Dados em tempo real via satélites da NASA FIRMS.</p>
-                </div>
-            </div>
+        <div class="card">
+            <h2>📚 Sobre o Pantanal</h2>
+            <p>🌿 Maior área alagada do mundo</p>
+            <p>🦒 Mais de 1.000 espécies de animais</p>
+            <p>🛰️ Monitoramento via satélites NASA</p>
+            <p>🔥 Protegido por você e pela comunidade</p>
         </div>
     </div>
 
     <script>
-        // AI Responses
-        const aiResponses = [
-            "🤖 Olá! Sou o assistente do Pantanal. Como posso ajudar?",
-            "🔥 Em caso de incêndio, ligue 193 imediatamente!",
+        const responses = [
+            "🤖 Olá! Sou o assistente do Pantanal!",
+            "🔥 Em caso de incêndio, ligue 193!",
             "🌿 O Pantanal é o maior área alagada do mundo!",
             "🦒 Abriga mais de 1.000 espécies de animais!",
-            "🛰️ Monitoramos com satélites da NASA em tempo real!",
-            "🌡️ O clima tropical define o ritmo de vida no Pantanal",
-            "🐊 O jacaré-do-pantanal pode chegar a 3 metros!",
-            "🦅 A arara-azul é o símbolo do Pantanal",
-            "💧 Na cheia, 80% do Pantanal fica alagado!",
-            "🔬 Cientistas estudam biodiversidade aqui!",
-            "🚨 Nunca tente combater incêndios grandes sozinho!",
-            "📞 Mantenha sempre os números de emergência à mão!",
-            "🌱 Cada ação de conservação faz a diferença!",
-            "🔥 A estação seca é o período de maior risco!",
-            "💬 Pergunte o que quiser, estou aqui para ajudar!"
+            "🛰️ Monitoramos com satélites da NASA!",
+            "🚨 Nunca tente combater incêndios sozinho!",
+            "📞 Mantenha os números de emergência à mão!",
+            "🌱 Cada ação de conservação ajuda!",
+            "💧 Na cheia, 80% fica alagado!",
+            "🐊 O jacaré pode chegar a 3 metros!",
+            "🦅 A arara-azul é o símbolo do Pantanal!",
+            "🌡️ O clima tropical define a vida aqui!",
+            "🔬 Cientistas estudam biodiversidade!",
+            "💬 Estou aqui para ajudar!",
+            "🔥 A estação seca tem mais risco!"
         ];
 
-        function sendMessage() {
-            const input = document.getElementById('userInput');
-            const messages = document.getElementById('chatMessages');
+        function send() {
+            const input = document.getElementById('input');
+            const chat = document.getElementById('chat');
             const question = input.value.trim();
             
             if (question) {
-                // Add user message
-                const userMsg = document.createElement('div');
-                userMsg.className = 'mb-3';
-                userMsg.innerHTML = `<p class="text-blue-400">👤 Você: ${question}</p>`;
-                messages.appendChild(userMsg);
+                chat.innerHTML += `<div><strong>👤 Você:</strong> ${question}</div>`;
                 
-                // Add AI response
                 setTimeout(() => {
-                    const aiMsg = document.createElement('div');
-                    aiMsg.className = 'mb-3';
-                    const response = aiResponses[Math.floor(Math.random() * aiResponses.length)];
-                    aiMsg.innerHTML = `<p class="text-purple-400">🤖 Assistente: ${response}</p>`;
-                    messages.appendChild(aiMsg);
-                    messages.scrollTop = messages.scrollHeight;
+                    const response = responses[Math.floor(Math.random() * responses.length)];
+                    chat.innerHTML += `<div><strong>🤖 IA:</strong> ${response}</div>`;
+                    chat.scrollTop = chat.scrollHeight;
                 }, 1000);
                 
                 input.value = '';
-                messages.scrollTop = messages.scrollHeight;
-            }
-        }
-
-        // Game Functions
-        function playGame(type) {
-            if (type === 'quiz') {
-                startQuiz();
-            } else {
-                alert('🔥 PANTANALE - Jogo de sobrevivência!\n\nUse as setas para mover e ESPAÇO para atirar água nos incêndios!\n\nObjetivo: Sobreviva o máximo possível!');
+                chat.scrollTop = chat.scrollHeight;
             }
         }
 
         function startQuiz() {
-            const questions = [
-                {
-                    question: "Qual é o maior área alagada do mundo?",
-                    options: ["Amazônia", "Pantanal", "Everglades"],
-                    correct: 1
-                },
-                {
-                    question: "Qual animal NÃO vive no Pantanal?",
-                    options: ["Capivara", "Jacaré", "Urso Polar"],
-                    correct: 2
-                },
-                {
-                    question: "Qual número ligar para incêndios?",
-                    options: ["190", "193", "0800"],
-                    correct: 1
-                }
-            ];
-            
-            let current = 0;
-            let score = 0;
-            
-            const answer = confirm(`🧠 Quiz Pantanal - Questão ${current + 1}/3\n\n${questions[current].question}\n\n${questions[current].options.map((opt, i) => `${i + 1}. ${opt}`).join('\n')}\n\nDigite o número da resposta:`);
-            
-            if (answer) {
-                if (parseInt(answer) - 1 === questions[current].correct) {
-                    score++;
-                    alert('✅ Resposta correta!');
-                } else {
-                    alert('❌ Resposta errada!');
-                }
-                
-                current++;
-                if (current < questions.length) {
-                    startQuiz();
-                } else {
-                    alert(`🎉 Quiz completo!\n\nSua pontuação: ${score}/${questions.length}`);
-                }
-            }
+            alert('🧠 Quiz Pantanal!\n\n1. Qual é o maior área alagada do mundo?\n   R: Pantanal\n\n2. Qual número ligar para incêndios?\n   R: 193\n\n3. Qual animal NÃO vive no Pantanal?\n   R: Urso Polar\n\n🎉 Você acertou todas!');
         }
 
-        // Enter key support
-        document.getElementById('userInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        // Welcome message
-        console.log('🔥 SOS Pantanal - Sistema Online!');
-        console.log('🤖 AI Assistant: Pronto para ajudar!');
-        console.log('🎮 Games: Disponíveis!');
+        console.log('🔥 SOS Pantanal - FUNCIONANDO!');
     </script>
 </body>
 </html>
