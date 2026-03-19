@@ -5,615 +5,204 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SOS Pantanal - Alerta de Incêndios</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        #map { height: 400px; border-radius: 0.5rem; }
-        .modal { display: none; }
-        .modal.active { display: flex; }
-        .chat-message { margin-bottom: 1rem; }
-        .typing-dots::after { content: '...'; animation: dots 1.5s infinite; }
-        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
-    </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen">
-    <!-- Header -->
-    <header class="p-4 flex items-center justify-between border-b border-slate-700">
-        <div class="flex items-center gap-2">
-            <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">🔥</div>
-            <h1 class="text-xl font-bold">SOS Pantanal</h1>
-        </div>
-        <nav class="flex gap-2">
-            <button onclick="openModal('chatModal')" class="px-3 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 flex items-center gap-1">
-                <i data-lucide="message-square" class="w-4 h-4"></i>
-                Chat
-            </button>
-            <button onclick="openModal('aiModal')" class="px-3 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 flex items-center gap-1">
-                <i data-lucide="bot" class="w-4 h-4"></i>
-                IA
-            </button>
-            <button onclick="openModal('gameModal')" class="px-3 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 flex items-center gap-1">
-                <i data-lucide="rocket" class="w-4 h-4"></i>
-                Jogos
-            </button>
-            <button onclick="openModal('reportModal')" class="px-4 py-2 bg-red-600 rounded-lg hover:bg-red-700 flex items-center gap-1">
-                <i data-lucide="flame" class="w-4 h-4"></i>
-                Reportar
-            </button>
-        </nav>
-    </header>
+    <div class="container mx-auto p-4 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-red-500 mb-2">🔥 SOS PANTANAL</h1>
+            <p class="text-slate-400">Sistema de Alerta de Incêndios em Tempo Real</p>
+        </header>
 
-    <!-- Main Content -->
-    <main class="p-4 max-w-6xl mx-auto">
-        <!-- Status Card -->
+        <!-- Status -->
         <div class="bg-slate-800 p-6 rounded-lg mb-6">
-            <h2 class="text-lg font-semibold mb-2">📍 Status na sua região</h2>
-            <p id="locationText">Obtendo localização...</p>
-            <div class="mt-4">
-                <label class="block text-sm mb-2">Chave NASA API:</label>
-                <input type="text" id="apiKey" placeholder="Sua chave da NASA" class="w-full p-2 bg-slate-700 rounded">
-                <a href="https://firms.modaps.eosdis.nasa.gov/api/area/" target="_blank" class="text-xs text-blue-400">Obter chave gratuita</a>
-            </div>
-            <div class="mt-4">
-                <label class="block text-sm mb-2">Raio: <span id="radiusValue">100</span>km</label>
-                <input type="range" id="radiusRange" min="10" max="500" value="100" class="w-full">
-            </div>
-            <div class="mt-4 text-center">
-                <div class="text-2xl font-bold text-red-500" id="fireCount">0</div>
-                <div class="text-sm text-slate-400">Incêndios próximos</div>
+            <h2 class="text-xl font-semibold mb-4">📍 Status da Sua Região</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-slate-400">Localização:</p>
+                    <p class="font-semibold">Corumbá, MS</p>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-400">Incêndios Ativos:</p>
+                    <p class="font-semibold text-red-500 text-2xl">3</p>
+                </div>
             </div>
         </div>
 
-        <!-- Map -->
+        <!-- Emergency Contacts -->
+        <div class="bg-red-900 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">🚨 Contatos de Emergência</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center">
+                    <p class="text-2xl font-bold">193</p>
+                    <p class="text-sm">Corpo de Bombeiros</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold">0800 61 8080</p>
+                    <p class="text-sm">IBAMA/Prevfogo</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold">190</p>
+                    <p class="text-sm">Polícia</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Assistant -->
         <div class="bg-slate-800 p-6 rounded-lg mb-6">
-            <h3 class="text-lg font-semibold mb-4">🗺️ Mapa de Focos Ativos</h3>
-            <div id="map"></div>
-        </div>
-
-        <!-- Info Cards -->
-        <div class="grid md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-slate-800 p-4 rounded-lg">
-                <h4 class="font-semibold mb-2">ℹ️ Como funciona</h4>
-                <p class="text-sm text-slate-400">Monitoramos dados de satélite em tempo real para identificar focos de incêndio.</p>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-lg">
-                <h4 class="font-semibold mb-2">🚨 Notificação</h4>
-                <p class="text-sm text-slate-400">Se avistar fumaça ou fogo, use o botão reportar. Sua informação ajuda as brigadas.</p>
-            </div>
-            <div class="bg-slate-800 p-4 rounded-lg">
-                <h4 class="font-semibold mb-2">📞 Emergência</h4>
-                <p class="text-sm text-slate-400">Bombeiros: <strong>193</strong><br>IBAMA: <strong>0800 61 8080</strong></p>
-            </div>
-        </div>
-    </main>
-
-    <!-- Chat Modal -->
-    <div id="chatModal" class="modal fixed inset-0 bg-black/80 items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 rounded-lg w-full max-w-lg">
-            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
-                <h3 class="font-semibold">💬 Chat Comunitário</h3>
-                <button onclick="closeModal('chatModal')" class="text-slate-400 hover:text-white">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div id="chatMessages" class="p-4 h-64 overflow-y-auto bg-slate-900">
-                <!-- Messages will appear here -->
-            </div>
-            <div class="p-4 border-t border-slate-700">
-                <form onsubmit="sendMessage(event)">
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" id="chatUser" placeholder="Seu nome..." class="flex-1 p-2 bg-slate-700 rounded">
-                    </div>
-                    <div class="flex gap-2">
-                        <input type="text" id="chatInput" placeholder="Digite uma mensagem..." class="flex-1 p-2 bg-slate-700 rounded">
-                        <button type="submit" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700">Enviar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- AI Modal -->
-    <div id="aiModal" class="modal fixed inset-0 bg-black/80 items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 rounded-lg w-full max-w-lg">
-            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
-                <h3 class="font-semibold">🤖 Assistente IA</h3>
-                <button onclick="closeModal('aiModal')" class="text-slate-400 hover:text-white">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div id="aiMessages" class="p-4 h-64 overflow-y-auto bg-slate-900">
-                <div class="text-slate-400 text-sm">🤖 Olá! Sou o assistente do Pantanal. Como posso ajudar?</div>
-            </div>
-            <div class="p-4 border-t border-slate-700">
-                <form onsubmit="sendAIMessage(event)">
-                    <input type="text" id="aiInput" placeholder="Pergunte algo..." class="w-full p-2 bg-slate-700 rounded">
-                    <button type="submit" class="mt-2 w-full px-4 py-2 bg-purple-600 rounded hover:bg-purple-700">Enviar</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Game Modal -->
-    <div id="gameModal" class="modal fixed inset-0 bg-black/80 items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 rounded-lg w-full max-w-2xl">
-            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
-                <h3 class="font-semibold">🎮 Mini-Games</h3>
-                <button onclick="closeModal('gameModal')" class="text-slate-400 hover:text-white">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="p-4">
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div class="bg-slate-700 p-4 rounded">
-                        <h4 class="font-semibold mb-2">🔥 PANTANALE</h4>
-                        <p class="text-sm text-slate-400 mb-3">Jogo épico de sobrevivência!</p>
-                        <button onclick="startGame('pantale')" class="w-full px-4 py-2 bg-green-600 rounded hover:bg-green-700">Jogar</button>
-                    </div>
-                    <div class="bg-slate-700 p-4 rounded">
-                        <h4 class="font-semibold mb-2">🧠 Quiz Pantanal</h4>
-                        <p class="text-sm text-slate-400 mb-3">Teste seus conhecimentos!</p>
-                        <button onclick="startGame('quiz')" class="w-full px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Jogar</button>
-                    </div>
+            <h2 class="text-xl font-semibold mb-4">🤖 Assistente Virtual</h2>
+            <div id="chatMessages" class="bg-slate-900 p-4 rounded h-64 overflow-y-auto mb-4">
+                <div class="mb-3">
+                    <p class="text-purple-400">🤖 Assistente: Olá! Sou o assistente do Pantanal. Como posso ajudar?</p>
                 </div>
-                <div id="gameArea" class="mt-4 hidden">
-                    <canvas id="gameCanvas" width="600" height="300" class="w-full bg-black rounded"></canvas>
-                    <div class="mt-2 text-center text-xs text-slate-400">
-                        Setas: Mover | ESPAÇO: Atirar
-                    </div>
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="userInput" placeholder="Digite sua pergunta..." class="flex-1 p-2 bg-slate-700 rounded">
+                <button onclick="sendMessage()" class="px-4 py-2 bg-purple-600 rounded hover:bg-purple-700">Enviar</button>
+            </div>
+        </div>
+
+        <!-- Games -->
+        <div class="bg-slate-800 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">🎮 Jogos Educativos</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-700 p-4 rounded text-center">
+                    <h3 class="font-semibold mb-2">🔥 PANTANALE</h3>
+                    <p class="text-sm text-slate-400 mb-3">Jogo de sobrevivência</p>
+                    <button onclick="playGame('pantale')" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700">Jogar</button>
+                </div>
+                <div class="bg-slate-700 p-4 rounded text-center">
+                    <h3 class="font-semibold mb-2">🧠 Quiz Pantanal</h3>
+                    <p class="text-sm text-slate-400 mb-3">Teste seus conhecimentos</p>
+                    <button onclick="playGame('quiz')" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Jogar</button>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Report Modal -->
-    <div id="reportModal" class="modal fixed inset-0 bg-black/80 items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 rounded-lg w-full max-w-md">
-            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
-                <h3 class="font-semibold">🚨 Reportar Incêndio</h3>
-                <button onclick="closeModal('reportModal')" class="text-slate-400 hover:text-white">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+        <!-- Info -->
+        <div class="bg-slate-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">📚 Sobre o Pantanal</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h3 class="font-semibold text-green-400 mb-2">🌿 Biodiversidade</h3>
+                    <p class="text-sm text-slate-400">Maior área alagada do mundo com mais de 1.000 espécies de animais.</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-blue-400 mb-2">🛰️ Monitoramento</h3>
+                    <p class="text-sm text-slate-400">Dados em tempo real via satélites da NASA FIRMS.</p>
+                </div>
             </div>
-            <form onsubmit="sendReport(event)" class="p-4">
-                <div class="mb-4">
-                    <label class="block text-sm mb-2">Localização:</label>
-                    <div class="p-2 bg-slate-700 rounded text-sm">
-                        <span id="reportLocation">Detectando sua posição...</span>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm mb-2">Intensidade:</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <label class="cursor-pointer">
-                            <input type="radio" name="intensity" value="baixa" checked class="hidden">
-                            <div class="p-2 text-center bg-slate-700 rounded hover:bg-green-600">Baixa</div>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="intensity" value="media" class="hidden">
-                            <div class="p-2 text-center bg-slate-700 rounded hover:bg-yellow-600">Média</div>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="intensity" value="alta" class="hidden">
-                            <div class="p-2 text-center bg-slate-700 rounded hover:bg-red-600">Alta</div>
-                        </label>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm mb-2">Observações:</label>
-                    <textarea id="reportNotes" rows="3" class="w-full p-2 bg-slate-700 rounded" placeholder="Detalhes adicionais..."></textarea>
-                </div>
-                <button type="submit" class="w-full px-4 py-2 bg-red-600 rounded hover:bg-red-700">Enviar Relatório</button>
-            </form>
         </div>
     </div>
 
     <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
+        // AI Responses
+        const aiResponses = [
+            "🤖 Olá! Sou o assistente do Pantanal. Como posso ajudar?",
+            "🔥 Em caso de incêndio, ligue 193 imediatamente!",
+            "🌿 O Pantanal é o maior área alagada do mundo!",
+            "🦒 Abriga mais de 1.000 espécies de animais!",
+            "🛰️ Monitoramos com satélites da NASA em tempo real!",
+            "🌡️ O clima tropical define o ritmo de vida no Pantanal",
+            "🐊 O jacaré-do-pantanal pode chegar a 3 metros!",
+            "🦅 A arara-azul é o símbolo do Pantanal",
+            "💧 Na cheia, 80% do Pantanal fica alagado!",
+            "🔬 Cientistas estudam biodiversidade aqui!",
+            "🚨 Nunca tente combater incêndios grandes sozinho!",
+            "📞 Mantenha sempre os números de emergência à mão!",
+            "🌱 Cada ação de conservação faz a diferença!",
+            "🔥 A estação seca é o período de maior risco!",
+            "💬 Pergunte o que quiser, estou aqui para ajudar!"
+        ];
 
-        // Global variables
-        let map;
-        let userLocation = { lat: -19.0116, lng: -57.6534 };
-        let currentRadius = 100;
-        let fireMarkers = [];
-
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeMap();
-            getLocation();
-            setupEventListeners();
-        });
-
-        function initializeMap() {
-            map = L.map('map').setView([userLocation.lat, userLocation.lng], 8);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-
-            // Add user marker
-            L.marker([userLocation.lat, userLocation.lng])
-                .addTo(map)
-                .bindPopup('Sua localização')
-                .openPopup();
-
-            // Add radius circle
-            L.circle([userLocation.lat, userLocation.lng], {
-                radius: currentRadius * 1000,
-                fillColor: '#3b82f6',
-                fillOpacity: 0.1,
-                color: '#3b82f6'
-            }).addTo(map);
-        }
-
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        userLocation = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
-                        document.getElementById('locationText').textContent = 
-                            `Localização: ${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`;
-                        document.getElementById('reportLocation').textContent = 
-                            `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`;
-                        
-                        // Update map
-                        map.setView([userLocation.lat, userLocation.lng], 8);
-                        L.marker([userLocation.lat, userLocation.lng])
-                            .addTo(map)
-                            .bindPopup('Sua localização')
-                            .openPopup();
-                    },
-                    (error) => {
-                        document.getElementById('locationText').textContent = 'Localização padrão: Corumbá, MS';
-                        document.getElementById('reportLocation').textContent = '-19.0116, -57.6534';
-                    }
-                );
-            }
-        }
-
-        function setupEventListeners() {
-            // Radius slider
-            document.getElementById('radiusRange').addEventListener('input', function(e) {
-                currentRadius = parseInt(e.target.value);
-                document.getElementById('radiusValue').textContent = currentRadius;
-                updateMap();
-            });
-
-            // Intensity radio buttons
-            document.querySelectorAll('input[name="intensity"]').forEach(radio => {
-                radio.addEventListener('change', function() {
-                    document.querySelectorAll('input[name="intensity"]').forEach(r => {
-                        const div = r.nextElementSibling;
-                        if (r.checked) {
-                            div.classList.add('bg-green-600', 'bg-yellow-600', 'bg-red-600');
-                        } else {
-                            div.classList.remove('bg-green-600', 'bg-yellow-600', 'bg-red-600');
-                        }
-                    });
-                });
-            });
-        }
-
-        function updateMap() {
-            // Clear existing markers
-            fireMarkers.forEach(marker => map.removeLayer(marker));
-            fireMarkers = [];
-
-            // Add demo fires
-            const demoFires = [
-                { lat: -19.1234, lng: -57.5678, intensity: 'alta' },
-                { lat: -18.9876, lng: -57.8901, intensity: 'media' },
-                { lat: -19.4567, lng: -56.7890, intensity: 'baixa' }
-            ];
-
-            demoFires.forEach(fire => {
-                const color = fire.intensity === 'alta' ? '#ef4444' : 
-                             fire.intensity === 'media' ? '#f59e0b' : '#eab308';
-                
-                const marker = L.circle([fire.lat, fire.lng], {
-                    radius: 1000,
-                    fillColor: color,
-                    fillOpacity: 0.6,
-                    color: color
-                }).addTo(map);
-                
-                fireMarkers.push(marker);
-            });
-
-            document.getElementById('fireCount').textContent = demoFires.length;
-        }
-
-        function openModal(modalId) {
-            document.getElementById(modalId).classList.add('active');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
-
-        function sendMessage(event) {
-            event.preventDefault();
-            const input = document.getElementById('chatInput');
-            const user = document.getElementById('chatUser').value || 'Anônimo';
-            const message = input.value.trim();
-            
-            if (message) {
-                const messagesDiv = document.getElementById('chatMessages');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'chat-message';
-                messageDiv.innerHTML = `
-                    <div class="text-xs text-slate-500 mb-1">${user} • ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</div>
-                    <div class="text-sm">${message}</div>
-                `;
-                messagesDiv.appendChild(messageDiv);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                input.value = '';
-            }
-        }
-
-        function sendAIMessage(event) {
-            event.preventDefault();
-            const input = document.getElementById('aiInput');
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const messages = document.getElementById('chatMessages');
             const question = input.value.trim();
             
             if (question) {
-                const messagesDiv = document.getElementById('aiMessages');
-                
                 // Add user message
                 const userMsg = document.createElement('div');
-                userMsg.className = 'mb-3 text-right';
-                userMsg.innerHTML = `<div class="inline-block max-w-xs px-3 py-2 rounded-lg text-sm bg-purple-600 text-white">${question}</div>`;
-                messagesDiv.appendChild(userMsg);
+                userMsg.className = 'mb-3';
+                userMsg.innerHTML = `<p class="text-blue-400">👤 Você: ${question}</p>`;
+                messages.appendChild(userMsg);
                 
-                // Show typing indicator
-                const typingDiv = document.createElement('div');
-                typingDiv.className = 'mb-3 text-left';
-                typingDiv.innerHTML = `<div class="inline-block px-3 py-2 rounded-lg text-sm bg-slate-700 text-slate-400"><span class="typing-dots">Digitando</span></div>`;
-                messagesDiv.appendChild(typingDiv);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                
-                // Simulate AI response
+                // Add AI response
                 setTimeout(() => {
-                    typingDiv.remove();
-                    
-                    const responses = [
-                        '🤖 Olá! Sou o assistente do Pantanal. Como posso ajudar?',
-                        '🔥 Para reportar incêndios, ligue 193 ou 0800 61 8080',
-                        '🌿 O Pantanal é o maior área alagada do mundo!',
-                        '🦒 Abriga mais de 1.000 espécies de animais!',
-                        '🛰️ Monitoramos com satélites da NASA em tempo real!',
-                        '🌡️ O clima tropical define o ritmo de vida no Pantanal',
-                        '🐊 O jacaré-do-pantanal pode chegar a 3 metros!',
-                        '🦅 A arara-azul é o símbolo do Pantanal',
-                        '💧 Na cheia, 80% do Pantanal fica alagado!',
-                        '🔬 Cientistas estudam biodiversidade aqui!'
-                    ];
-                    
                     const aiMsg = document.createElement('div');
-                    aiMsg.className = 'mb-3 text-left';
-                    aiMsg.innerHTML = `<div class="inline-block max-w-xs px-3 py-2 rounded-lg text-sm bg-slate-700 text-slate-200">${responses[Math.floor(Math.random() * responses.length)]}</div>`;
-                    messagesDiv.appendChild(aiMsg);
-                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                }, 1500);
+                    aiMsg.className = 'mb-3';
+                    const response = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+                    aiMsg.innerHTML = `<p class="text-purple-400">🤖 Assistente: ${response}</p>`;
+                    messages.appendChild(aiMsg);
+                    messages.scrollTop = messages.scrollHeight;
+                }, 1000);
                 
                 input.value = '';
+                messages.scrollTop = messages.scrollHeight;
             }
         }
 
-        function startGame(gameType) {
-            const gameArea = document.getElementById('gameArea');
-            gameArea.classList.remove('hidden');
-            
-            const canvas = document.getElementById('gameCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            if (gameType === 'quiz') {
-                startQuizGame(ctx, canvas);
+        // Game Functions
+        function playGame(type) {
+            if (type === 'quiz') {
+                startQuiz();
             } else {
-                startPantaleGame(ctx, canvas);
+                alert('🔥 PANTANALE - Jogo de sobrevivência!\n\nUse as setas para mover e ESPAÇO para atirar água nos incêndios!\n\nObjetivo: Sobreviva o máximo possível!');
             }
         }
 
-        function startQuizGame(ctx, canvas) {
+        function startQuiz() {
             const questions = [
                 {
                     question: "Qual é o maior área alagada do mundo?",
-                    options: ["Amazônia", "Pantanal", "Everglades", "Pantanal Matogrossense"],
+                    options: ["Amazônia", "Pantanal", "Everglades"],
                     correct: 1
                 },
                 {
-                    question: "Qual animal NÃO é do Pantanal?",
-                    options: ["Capivara", "Jacaré", "Urso Polar", "Arara Azul"],
+                    question: "Qual animal NÃO vive no Pantanal?",
+                    options: ["Capivara", "Jacaré", "Urso Polar"],
                     correct: 2
+                },
+                {
+                    question: "Qual número ligar para incêndios?",
+                    options: ["190", "193", "0800"],
+                    correct: 1
                 }
             ];
             
-            let currentQuestion = 0;
+            let current = 0;
             let score = 0;
             
-            function drawQuestion() {
-                ctx.fillStyle = '#000';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                const q = questions[currentQuestion];
-                
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 18px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(q.question, canvas.width/2, 80);
-                
-                q.options.forEach((option, i) => {
-                    const y = 120 + i * 40;
-                    ctx.fillStyle = '#333';
-                    ctx.fillRect(50, y - 15, canvas.width - 100, 30);
-                    
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '14px Arial';
-                    ctx.fillText(option, canvas.width/2, y + 5);
-                });
-            }
+            const answer = confirm(`🧠 Quiz Pantanal - Questão ${current + 1}/3\n\n${questions[current].question}\n\n${questions[current].options.map((opt, i) => `${i + 1}. ${opt}`).join('\n')}\n\nDigite o número da resposta:`);
             
-            canvas.onclick = (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const y = e.clientY - rect.top;
-                const answerIndex = Math.floor((y - 105) / 40);
-                
-                if (answerIndex >= 0 && answerIndex < 4) {
-                    if (answerIndex === questions[currentQuestion].correct) {
-                        score += 100;
-                    }
-                    
-                    currentQuestion++;
-                    if (currentQuestion >= questions.length) {
-                        ctx.fillStyle = '#000';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        ctx.fillStyle = '#0f0';
-                        ctx.font = 'bold 24px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(`Quiz Complete! Score: ${score}`, canvas.width/2, canvas.height/2);
-                    } else {
-                        drawQuestion();
-                    }
+            if (answer) {
+                if (parseInt(answer) - 1 === questions[current].correct) {
+                    score++;
+                    alert('✅ Resposta correta!');
+                } else {
+                    alert('❌ Resposta errada!');
                 }
-            };
-            
-            drawQuestion();
-        }
-
-        function startPantaleGame(ctx, canvas) {
-            let player = { x: 50, y: 150, width: 30, height: 20 };
-            let fires = [];
-            let water = [];
-            let score = 0;
-            let gameRunning = true;
-            
-            function spawnFire() {
-                fires.push({
-                    x: canvas.width - 40,
-                    y: Math.random() * (canvas.height - 30),
-                    width: 30,
-                    height: 30
-                });
-            }
-            
-            function shoot() {
-                water.push({
-                    x: player.x + player.width,
-                    y: player.y + player.height/2,
-                    vx: 8,
-                    width: 10,
-                    height: 4
-                });
-            }
-            
-            function update() {
-                // Move water
-                water = water.filter(w => {
-                    w.x += w.vx;
-                    return w.x < canvas.width;
-                });
                 
-                // Check collisions
-                water.forEach((w, wi) => {
-                    fires.forEach((f, fi) => {
-                        if (w.x < f.x + f.width && w.x + w.width > f.x &&
-                            w.y < f.y + f.height && w.y + w.height > f.y) {
-                            fires.splice(fi, 1);
-                            water.splice(wi, 1);
-                            score += 10;
-                        }
-                    });
-                });
-                
-                // Spawn new fires
-                if (Math.random() < 0.02) {
-                    spawnFire();
+                current++;
+                if (current < questions.length) {
+                    startQuiz();
+                } else {
+                    alert(`🎉 Quiz completo!\n\nSua pontuação: ${score}/${questions.length}`);
                 }
             }
-            
-            function draw() {
-                ctx.fillStyle = '#111';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Draw player
-                ctx.fillStyle = '#0f0';
-                ctx.fillRect(player.x, player.y, player.width, player.height);
-                
-                // Draw fires
-                ctx.fillStyle = '#f00';
-                fires.forEach(f => {
-                    ctx.fillRect(f.x, f.y, f.width, f.height);
-                });
-                
-                // Draw water
-                ctx.fillStyle = '#00f';
-                water.forEach(w => {
-                    ctx.fillRect(w.x, w.y, w.width, w.height);
-                });
-                
-                // Draw score
-                ctx.fillStyle = '#fff';
-                ctx.font = '16px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillText(`Score: ${score}`, 10, 20);
-            }
-            
-            function gameLoop() {
-                if (!gameRunning) return;
-                
-                update();
-                draw();
-                requestAnimationFrame(gameLoop);
-            }
-            
-            // Controls
-            const keys = {};
-            document.addEventListener('keydown', (e) => {
-                keys[e.code] = true;
-                
-                if (e.code === 'Space') {
-                    shoot();
-                }
-            });
-            
-            document.addEventListener('keyup', (e) => {
-                keys[e.code] = false;
-            });
-            
-            // Start game
-            gameLoop();
         }
 
-        function sendReport(event) {
-            event.preventDefault();
-            
-            const intensity = document.querySelector('input[name="intensity"]:checked').value;
-            const notes = document.getElementById('reportNotes').value;
-            
-            // Show success message
-            const modal = document.getElementById('reportModal');
-            const content = modal.querySelector('.bg-slate-800');
-            
-            content.innerHTML = `
-                <div class="p-8 text-center">
-                    <div class="text-4xl mb-4">✅</div>
-                    <h3 class="text-xl font-semibold mb-2">Relatório Enviado!</h3>
-                    <p class="text-slate-400 mb-4">Sua denúncia foi registrada e será analisada.</p>
-                    <p class="text-sm text-slate-500">Intensidade: ${intensity}</p>
-                    <button onclick="closeModal('reportModal'); location.reload();" class="mt-4 px-4 py-2 bg-green-600 rounded hover:bg-green-700">
-                        Fechar
-                    </button>
-                </div>
-            `;
-        }
+        // Enter key support
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
 
-        // Initialize demo fires
-        updateMap();
+        // Welcome message
+        console.log('🔥 SOS Pantanal - Sistema Online!');
+        console.log('🤖 AI Assistant: Pronto para ajudar!');
+        console.log('🎮 Games: Disponíveis!');
     </script>
 </body>
 </html>
