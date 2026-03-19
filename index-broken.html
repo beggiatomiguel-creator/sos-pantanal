@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SOS Pantanal - Sistema de alerta de incêndios em tempo real com dados da NASA e monitoramento comunitário">
+    <meta name="keywords" content="pantanal, incêndio, nasa, firps, monitoramento, alerta, queimada">
+    <meta name="author" content="SOS Pantanal">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://beggiatomiguel-creator.github.io/sos-pantanal/">
+    <meta property="og:title" content="SOS Pantanal - Alerta de Incêndios">
+    <meta property="og:description" content="Monitoramento em tempo real de incêndios no Pantanal com dados da NASA">
+    <meta property="og:image" content="https://beggiatomiguel-creator.github.io/sos-pantanal/assets/og-image.jpg">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://beggiatomiguel-creator.github.io/sos-pantanal/">
+    <meta property="twitter:title" content="SOS Pantanal - Alerta de Incêndios">
+    <meta property="twitter:description" content="Monitoramento em tempo real de incêndios no Pantanal com dados da NASA">
+    <meta property="twitter:image" content="https://beggiatomiguel-creator.github.io/sos-pantanal/assets/og-image.jpg">
+    
+    <title>SOS Pantanal - Alerta de Incêndios</title>
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://fonts.cdnfonts.com">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Custom Fonts -->
+    <link href="https://fonts.cdnfonts.com/css/determination-mono" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0f172a">
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="assets/icon-192x192.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    
+    <style>
+        #map { height: 500px; border-radius: 1rem; }
+        .undertale-font { font-family: 'Determination Mono', 'Courier New', monospace; }
+        
+        /* Critical CSS for above-the-fold content */
+        .loading-skeleton {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="dark-theme min-h-screen flex flex-col font-sans transition-all duration-75">
+    <!-- Blood Overlay for game effects -->
+    <div id="bloodOverlay" class="fixed inset-0 bg-red-600/50 pointer-events-none z-[9999] hidden"></div>
+
+    <!-- Skip to main content for accessibility -->
+    <a href="#mainContent" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded">
+        Pular para o conteúdo principal
+    </a>
+
+    <!-- Header -->
+    <header class="p-6 flex items-center justify-between border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50">
+        <a href="#" class="flex items-center group" aria-label="SOS Pantanal Início">
+            <img src="assets/logo.png" alt="SOS Pantanal Logo" class="h-16 transition-transform group-hover:scale-105">
+        </a>
+        
+        <nav class="flex items-center gap-4">
+            <button id="settingsBtn" class="text-slate-400 hover:text-white p-2 rounded-lg border border-slate-700 hover:bg-slate-800 transition-all" 
+                    title="Configurações" aria-label="Configurações">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+            
+            <button id="chatBtn" class="text-slate-400 hover:text-white flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 transition-all relative" 
+                    title="Chat Comunitário" aria-label="Chat Comunitário">
+                <i data-lucide="message-square" class="w-5 h-5"></i>
+                <span class="hidden sm:inline">Chat Global</span>
+                <span id="chatBadge" class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-900 hidden" 
+                      aria-label="Novas mensagens"></span>
+            </button>
+            
+            <button id="aiBtn" class="text-slate-400 hover:text-white flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 transition-all" 
+                    title="Assistente IA" aria-label="Assistente IA">
+                <i data-lucide="bot" class="w-5 h-5"></i>
+                <span class="hidden sm:inline">Assistente IA</span>
+            </button>
+            
+            <button id="gamesBtn" class="text-slate-400 hover:text-white flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 transition-all" 
+                    title="Mini-Games" aria-label="Mini-Games">
+                <i data-lucide="rocket" class="w-5 h-5"></i>
+                <span class="hidden sm:inline">Mini-Games</span>
+            </button>
+            
+            <button id="reportBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full font-semibold flex items-center gap-2 btn-report shadow-lg shadow-red-900/20 transition-all" 
+                    title="Reportar Incêndio" aria-label="Reportar Incêndio">
+                <i data-lucide="flame" class="w-5 h-5"></i>
+                <span class="hidden sm:inline">Reportar Incêndio</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main id="mainContent" class="flex-grow p-4 md:p-8 max-w-6xl mx-auto w-full space-y-8">
+        <!-- Status Card -->
+        <section id="status-card" class="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 flex flex-col md:flex-row items-center justify-between gap-6 card">
+            <div class="space-y-2 w-full md:w-1/3">
+                <h2 class="text-xl font-semibold flex items-center gap-2">
+                    <i data-lucide="shield-alert" class="text-red-500" aria-hidden="true"></i>
+                    Status na sua região
+                    <div id="data-status" aria-live="polite"></div>
+                </h2>
+                <p id="location-text" class="text-slate-400">Obtendo sua localização...</p>
+                
+                <div class="mt-4 flex flex-col gap-2">
+                    <label for="apiKeyInput" class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">NASA API KEY</label>
+                    <div class="relative group">
+                        <input type="password" 
+                               id="apiKeyInput" 
+                               placeholder="Insira sua MAP_KEY" 
+                               class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 w-full md:w-64 transition-all pr-10 form-input"
+                               aria-describedby="apiKeyHelp">
+                        <button type="button" 
+                                onclick="const input = document.getElementById('apiKeyInput'); input.type = input.type === 'password' ? 'text' : 'password';" 
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1"
+                                aria-label="Mostrar/ocultar chave">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div id="apiKeyHelp">
+                        <a href="https://firms.modaps.eosdis.nasa.gov/api/area/" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           class="text-[9px] text-blue-400 hover:underline flex items-center gap-1">
+                            <i data-lucide="external-link" class="w-2 h-2" aria-hidden="true"></i> 
+                            Obter chave gratuita na NASA
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-grow w-full md:w-1/3 px-4">
+                <label for="radiusRange" class="text-xs text-slate-400 mb-2 block uppercase tracking-wider font-bold">
+                    Raio de Visão: <span id="radiusValue" class="text-blue-400">100</span>km
+                </label>
+                <input type="range" 
+                       id="radiusRange" 
+                       min="10" 
+                       max="500" 
+                       value="100" 
+                       class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                       aria-label="Ajustar raio de visão">
+            </div>
+
+            <div class="flex gap-4 w-full md:w-1/3 justify-end">
+                <div class="bg-slate-900/80 px-6 py-3 rounded-xl border border-slate-700 text-center flex-grow">
+                    <p class="text-sm text-slate-400">Incêndios próximos</p>
+                    <p id="fire-count" class="text-2xl font-bold text-red-500" aria-live="polite">0</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Map Section -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium flex items-center gap-2">
+                    <i data-lucide="map" class="text-slate-400" aria-hidden="true"></i>
+                    Mapa de Focos Ativos
+                </h3>
+                <button id="refreshMap" class="text-slate-400 hover:text-white flex items-center gap-1 text-sm transition-colors" 
+                        aria-label="Atualizar mapa">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    Atualizar
+                </button>
+            </div>
+            
+            <div id="map" class="shadow-2xl shadow-black/50 border border-slate-700 relative" role="application" aria-label="Mapa de focos de incêndio">
+                <div id="mapLoader" class="map-loader hidden" aria-hidden="true">
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="text-xs font-bold text-white uppercase tracking-widest">Atualizando Mapa</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Legend & Info -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-800/30 p-4 rounded-xl border border-slate-800 card">
+                <h4 class="font-semibold mb-3 flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-blue-400" aria-hidden="true"></i>
+                    Como funciona
+                </h4>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    Monitoramos dados de satélite em tempo real e relatórios da comunidade para identificar focos de incêndio no Pantanal.
+                </p>
+            </div>
+            
+            <div class="bg-slate-800/30 p-4 rounded-xl border border-slate-800 card">
+                <h4 class="font-semibold mb-3 flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-500" aria-hidden="true"></i>
+                    Notificação
+                </h4>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    Se você avistar fumaça ou fogo, use o botão de reportar. Sua informação é validada e ajuda as brigadas locais.
+                </p>
+            </div>
+            
+            <div class="bg-slate-800/30 p-4 rounded-xl border border-slate-800 card">
+                <h4 class="font-semibold mb-3 flex items-center gap-2">
+                    <i data-lucide="phone" class="w-4 h-4 text-green-500" aria-hidden="true"></i>
+                    Emergência
+                </h4>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    Corpo de Bombeiros: <span class="text-white font-bold">193</span><br>
+                    Prevfogo/IBAMA: <span class="text-white font-bold">0800 61 8080</span>
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Templates -->
+    <!-- Global Chat Modal -->
+    <div id="chatModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1500] hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[600px]">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                <div class="flex flex-col">
+                    <h3 class="text-xl font-bold flex items-center gap-2">
+                        <i data-lucide="message-square" class="text-green-400"></i>
+                        Chat Comunitário
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span id="chatStatus" class="text-[10px] text-slate-500 uppercase tracking-widest">Conectado</span>
+                        <span class="text-[10px] text-slate-500">•</span>
+                        <span id="userCount" class="text-[10px] text-slate-500 uppercase tracking-widest">0 online</span>
+                    </div>
+                </div>
+                <button id="closeChat" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div id="chatMessages" class="flex-grow overflow-y-auto p-6 space-y-4 text-sm scrollbar-thin scrollbar-thumb-slate-700">
+                <!-- Messages will appear here -->
+            </div>
+
+            <div class="p-4 border-t border-slate-800 bg-slate-900 space-y-3">
+                <div id="chatSetup" class="flex gap-2 items-center">
+                    <input type="text" id="chatUser" placeholder="Seu apelido..." class="w-1/3 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+                    <span class="text-[10px] text-slate-500">Defina um nome para começar</span>
+                </div>
+                <form id="chatForm" class="flex gap-2">
+                    <input type="text" id="chatInput" placeholder="Digite uma mensagem..." class="flex-grow bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white p-3 rounded-xl shadow-lg transition-all">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] hidden items-center justify-center p-4 modal-backdrop" role="dialog" aria-labelledby="reportTitle">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl modal-content">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 id="reportTitle" class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="flame" class="text-red-500" aria-hidden="true"></i>
+                    Reportar Incêndio
+                </h3>
+                <button id="closeModal" class="text-slate-400 hover:text-white transition-colors" aria-label="Fechar modal">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="reportForm" class="p-6 space-y-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Localização do Fogo</label>
+                    <div class="bg-slate-800 p-3 rounded-lg text-sm text-slate-400 flex items-center gap-2">
+                        <i data-lucide="map-pin" class="w-4 h-4" aria-hidden="true"></i>
+                        <span id="currentCoords">Detectando sua posição...</span>
+                    </div>
+                </div>
+                
+                <fieldset class="space-y-2">
+                    <legend class="text-sm font-medium text-slate-300">Intensidade Observada</legend>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="intensity" value="low" class="hidden peer" checked>
+                            <div class="bg-slate-800 p-2 text-center rounded-lg border border-transparent peer-checked:border-green-500 peer-checked:bg-green-500/10 text-xs">Baixa</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="intensity" value="medium" class="hidden peer">
+                            <div class="bg-slate-800 p-2 text-center rounded-lg border border-transparent peer-checked:border-yellow-500 peer-checked:bg-yellow-500/10 text-xs">Média</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="intensity" value="high" class="hidden peer">
+                            <div class="bg-slate-800 p-2 text-center rounded-lg border border-transparent peer-checked:border-red-500 peer-checked:bg-red-500/10 text-xs">Alta</div>
+                        </label>
+                    </div>
+                </fieldset>
+                
+                <div class="space-y-2">
+                    <label for="observations" class="text-sm font-medium text-slate-300">Observações (Opcional)</label>
+                    <textarea id="observations" 
+                              class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 form-input" 
+                              placeholder="Ex: Próximo à rodovia BR-262..." 
+                              rows="3"
+                              maxlength="500"></textarea>
+                </div>
+                
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-red-900/30 transition-all btn">
+                    Enviar Relatório
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] hidden items-center justify-center p-4 modal-backdrop" role="dialog" aria-labelledby="settingsTitle">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl modal-content">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 id="settingsTitle" class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="settings" class="text-blue-400" aria-hidden="true"></i>
+                    Configurações
+                </h3>
+                <button class="text-slate-400 hover:text-white transition-colors" aria-label="Fechar modal">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Estilo do Mapa</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="mapStyleDark" class="bg-slate-800 p-2 rounded-lg border border-slate-700 text-xs">Escuro</button>
+                        <button id="mapStyleSatellite" class="bg-slate-800 p-2 rounded-lg border border-slate-700 text-xs">Satélite</button>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Volume do Áudio</label>
+                    <input type="range" id="volumeRange" min="0" max="100" value="50" class="w-full">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Assistant Modal -->
+    <div id="aiModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] hidden items-center justify-center p-4 modal-backdrop" role="dialog" aria-labelledby="aiTitle">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl modal-content">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 id="aiTitle" class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="bot" class="text-purple-400" aria-hidden="true"></i>
+                    Assistente IA
+                </h3>
+                <button class="text-slate-400 hover:text-white transition-colors" aria-label="Fechar modal">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div id="aiMessages" class="h-64 overflow-y-auto mb-4 p-4 bg-slate-800 rounded-lg">
+                    <p class="text-slate-400 text-sm">Como posso ajudar você com informações sobre incêndios no Pantanal?</p>
+                </div>
+                <form id="aiForm" class="flex gap-2">
+                    <input type="text" id="aiInput" placeholder="Pergunte algo..." class="flex-grow bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+                    <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Games Modal -->
+    <div id="gamesModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] hidden items-center justify-center p-4 modal-backdrop" role="dialog" aria-labelledby="gamesTitle">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl modal-content">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 id="gamesTitle" class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="rocket" class="text-green-400" aria-hidden="true"></i>
+                    Mini-Games
+                </h3>
+                <button class="text-slate-400 hover:text-white transition-colors" aria-label="Fechar modal">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                        <h4 class="font-semibold mb-2">🔥 PANTANALE</h4>
+                        <p class="text-sm text-slate-400 mb-3">Jogo épico de sobrevivência no Pantanal!</p>
+                        <button id="startFireGame" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm w-full">
+                            JOGAR AGORA
+                        </button>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                        <h4 class="font-semibold mb-2">Quiz Pantanal</h4>
+                        <p class="text-sm text-slate-400 mb-3">Teste seus conhecimentos!</p>
+                        <button id="startQuizGame" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm w-full">
+                            Jogar
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Game Container -->
+                <div id="gameContainer" class="hidden">
+                    <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 id="gameTitle" class="font-semibold">🔥 PANTANALE</h4>
+                            <div class="flex gap-4 text-sm">
+                                <span>Pontos: <span id="gameScore" class="text-green-400 font-bold">0</span></span>
+                                <span>Wave: <span id="gameLevel" class="text-blue-400 font-bold">1</span></span>
+                            </div>
+                        </div>
+                        <canvas id="gameCanvas" class="w-full bg-black rounded-lg" width="600" height="400"></canvas>
+                        <div class="mt-4 flex justify-center gap-4">
+                            <button id="pauseGame" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm">
+                                Pausar
+                            </button>
+                            <button id="restartGame" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                                Reiniciar
+                            </button>
+                        </div>
+                        <div class="mt-2 text-center text-xs text-slate-400">
+                            Setas: Mover | ESPAÇO: Atirar | X: Escudo | C: Mega-Blast (100 pts)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="p-6 text-center text-slate-500 text-sm border-t border-slate-800">
+        <p>&copy; 2026 SOS Pantanal - Tecnologia a serviço da preservação.</p>
+        <p class="text-xs mt-2">Dados fornecidos pela NASA FIRMS e comunidade local</p>
+    </footer>
+
+    <!-- Audio Elements -->
+    <audio id="musicLow" preload="auto" loop crossorigin="anonymous">
+        <source src="https://ia801309.us.archive.org/28/items/undertale_ost/Undertale%20-%20001%20-%20Once%20Upon%20A%20Time.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="musicMid" preload="auto" loop crossorigin="anonymous">
+        <source src="https://ia801309.us.archive.org/28/items/undertale_ost/Undertale%20-%20031%20-%20Waterfall.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="musicHigh" preload="auto" loop crossorigin="anonymous">
+        <source src="https://ia801309.us.archive.org/28/items/undertale_ost/Undertale%20-%20087%20-%20Hopes%20and%20Dreams.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Module Scripts -->
+    <script type="module" src="js/app.js"></script>
+    
+    <!-- Fallback script for older browsers -->
+    <script>
+        // Check if modules are supported
+        if (typeof HTMLScriptElement.supports === 'undefined' || !HTMLScriptElement.supports('importmap')) {
+            // Fallback for browsers that don't support modules
+            console.log('Loading fallback version...');
+            
+            // Simple fallback initialization
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('SOS Pantanal loaded (fallback mode)');
+                
+                // Basic modal functionality
+                const modals = document.querySelectorAll('[id$="Modal"]');
+                const buttons = document.querySelectorAll('[id$="Btn"]');
+                
+                buttons.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const modalId = this.id.replace('Btn', 'Modal');
+                        const modal = document.getElementById(modalId);
+                        if (modal) {
+                            modal.classList.remove('hidden');
+                            modal.classList.add('flex');
+                        }
+                    });
+                });
+                
+                // Close modals
+                document.querySelectorAll('button[aria-label*="Fechar"]').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const modal = this.closest('[id$="Modal"]');
+                        if (modal) {
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                        }
+                    });
+                });
+                
+                // Basic AI responses
+                if (document.getElementById('aiForm')) {
+                    document.getElementById('aiForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        const input = document.getElementById('aiInput');
+                        const messages = document.getElementById('aiMessages');
+                        
+                        if (input && messages) {
+                            const question = input.value.trim();
+                            if (question) {
+                                // Add user message
+                                const userMsg = document.createElement('div');
+                                userMsg.className = 'mb-3 text-right';
+                                userMsg.innerHTML = `<div class="inline-block max-w-xs px-3 py-2 rounded-lg text-sm bg-purple-600 text-white">${question}</div>`;
+                                messages.appendChild(userMsg);
+                                
+                                // Simple AI response
+                                const responses = [
+                                    '🤖 Olá! Sou o assistente do Pantanal. Como posso ajudar?',
+                                    '🔥 Para reportar incêndios, ligue 193 ou 0800 61 8080',
+                                    '🌿 O Pantanal é o maior área alagada do mundo!',
+                                    '🦒 Abriga mais de 1.000 espécies de animais!',
+                                    '🛰️ Monitoramos com satélites da NASA em tempo real!'
+                                ];
+                                
+                                setTimeout(() => {
+                                    const aiMsg = document.createElement('div');
+                                    aiMsg.className = 'mb-3 text-left';
+                                    aiMsg.innerHTML = `<div class="inline-block max-w-xs px-3 py-2 rounded-lg text-sm bg-slate-700 text-slate-200">${responses[Math.floor(Math.random() * responses.length)]}</div>`;
+                                    messages.appendChild(aiMsg);
+                                    messages.scrollTop = messages.scrollHeight;
+                                }, 1000);
+                                
+                                input.value = '';
+                                messages.scrollTop = messages.scrollHeight;
+                            }
+                        }
+                    });
+                }
+                
+                // Basic chat functionality
+                if (document.getElementById('chatForm')) {
+                    document.getElementById('chatForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        const input = document.getElementById('chatInput');
+                        const messages = document.getElementById('chatMessages');
+                        const username = document.getElementById('chatUser');
+                        
+                        if (input && messages) {
+                            const message = input.value.trim();
+                            const user = username ? username.value.trim() : 'Anônimo';
+                            
+                            if (message) {
+                                const msgDiv = document.createElement('div');
+                                msgDiv.className = 'mb-3';
+                                msgDiv.innerHTML = `
+                                    <div class="text-xs text-slate-500 mb-1">${user} • ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</div>
+                                    <div class="text-sm text-white">${message}</div>
+                                `;
+                                messages.appendChild(msgDiv);
+                                messages.scrollTop = messages.scrollHeight;
+                                input.value = '';
+                            }
+                        }
+                    });
+                }
+                
+                console.log('Fallback mode initialized successfully');
+            });
+        }
+    </script>
+    
+    <!-- Fallback for older browsers -->
+    <script nomodule>
+        document.body.innerHTML = '<div class="flex items-center justify-center min-h-screen bg-slate-900 text-white p-8 text-center"><h1>Seu navegador não suporta este aplicativo.</h1><p>Por favor, atualize para um navegador moderno.</p></div>';
+    </script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('SW registered'))
+                    .catch(error => console.log('SW registration failed'));
+            });
+        }
+    </script>
+</body>
+</html>
