@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS Pantanal Chat Backend</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: white; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .message { background: #2a2a2a; padding: 10px; margin: 5px 0; border-radius: 8px; }
+        .form { background: #333; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        input, button { padding: 10px; margin: 5px; border-radius: 4px; border: none; }
+        button { background: #4CAF50; color: white; cursor: pointer; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .online { background: #4CAF50; }
+        .offline { background: #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌿 SOS Pantanal - Chat Backend</h1>
+        <div id="status" class="status">Inicializando...</div>
+        
+        <div class="form">
+            <h3>Enviar Mensagem de Teste</h3>
+            <input type="text" id="testUser" placeholder="Seu nome" value="Teste">
+            <input type="text" id="testMessage" placeholder="Mensagem">
+            <button onclick="sendTestMessage()">Enviar</button>
+        </div>
+        
+        <h3>📱 Mensagens Recentes (Últimas 50)</h3>
+        <div id="messages"></div>
+        
+        <div class="form">
+            <h3>📊 Estatísticas</h3>
+            <p>Total de mensagens: <span id="totalCount">0</span></p>
+            <p>Usuários online: <span id="onlineCount">0</span></p>
+            <p>Última atualização: <span id="lastUpdate">Nunca</span></p>
+        </div>
+    </div>
+
+    <script>
+        // Usar GitHub Pages como backend real
+        const GITHUB_API = 'https://api.github.com';
+        const REPO_OWNER = 'beggiatomiguel-creator';
+        const REPO_NAME = 'sos-pantanal';
+        const FILE_PATH = 'chat-data.json';
+        
+        let messages = [];
+        let onlineUsers = new Set();
+        
+        // Inicializar
+        async function init() {
+            updateStatus('Carregando mensagens...', 'online');
+            await loadMessages();
+            setInterval(loadMessages, 5000); // Atualizar a cada 5 segundos
+            setInterval(updateOnlineCount, 10000); // Atualizar contagem online
+            
+            // Simular usuário online
+            simulateOnlineUser();
+        }
+        
+        // Carregar mensagens do GitHub
+        async function loadMessages() {
+            try {
+                // Tentar carregar do arquivo JSON no repositório
+                const response = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/chat-data.json`);
+                
+                if (response.ok) {
+                    const data = await response.text();
+                    if (data) {
+                        try {
+                            messages = JSON.parse(data);
+                            displayMessages();
+                            updateStatus('Conectado ao GitHub', 'online');
+                        } catch (e) {
+                            console.warn('JSON parse error, using fallback');
+                            messages = [];
+                        }
+                    }
+                } else {
+                    throw new Error('GitHub API failed');
+                }
+            } catch (error) {
+                console.warn('GitHub failed, using local storage');
+                // Fallback para localStorage
+                const stored = localStorage.getItem('sos-pantanal-chat');
+                if (stored) {
+                    messages = JSON.parse(stored);
+                    displayMessages();
+                }
+                updateStatus('Usando modo offline', 'offline');
+            }
+            
+            updateStats();
+        }
+        
+        // Salvar mensagens (simulado - na prática precisaria de autenticação)
+        async function saveMessages() {
+            try {
+                // Salvar no localStorage como fallback
+                localStorage.setItem('sos-pantanal-chat', JSON.stringify(messages));
+                
+                // Tentar salvar no GitHub (requer token)
+                const token = localStorage.getItem('github-token');
+                if (token) {
+                    await saveToGitHub(messages);
+                }
+                
+                updateStats();
+            } catch (error) {
+                console.error('Save failed:', error);
+                updateStatus('Erro ao salvar', 'offline');
+            }
+        }
+        
+        // Salvar no GitHub (requer token de API)
+        async function saveToGitHub(data) {
+            const token = localStorage.getItem('github-token');
+            if (!token) return false;
+            
+            const content = JSON.stringify(data, null, 2);
+            const message = `Chat update - ${new Date().toISOString()}`;
+            
+            const response = await fetch(`${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: message,
+                    content: btoa(content),
+                    sha: await getCurrentFileSHA()
+                })
+            });
+            
+            return response.ok;
+        }
+        
+        // Obter SHA atual do arquivo
+        async function getCurrentFileSHA() {
+            try {
+                const response = await fetch(`${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.sha;
+                }
+            } catch (error) {
+                return null;
+            }
+            return null;
+        }
+        
+        // Enviar mensagem de teste
+        async function sendTestMessage() {
+            const user = document.getElementById('testUser').value.trim();
+            const message = document.getElementById('testMessage').value.trim();
+            
+            if (!user || !message) {
+                alert('Preencha todos os campos');
+                return;
+            }
+            
+            const newMessage = {
+                id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+                user: user,
+                text: message,
+                time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                timestamp: Date.now(),
+                location: { city: 'São Paulo', region: 'SP', country: 'Brasil' }
+            };
+            
+            messages.push(newMessage);
+            
+            // Manter apenas as últimas 100 mensagens
+            if (messages.length > 100) {
+                messages = messages.slice(-100);
+            }
+            
+            await saveMessages();
+            document.getElementById('testMessage').value = '';
+            
+            // Adicionar mensagem local imediatamente
+            displayMessages();
+        }
+        
+        // Exibir mensagens
+        function displayMessages() {
+            const container = document.getElementById('messages');
+            container.innerHTML = '';
+            
+            // Mostrar as 50 mais recentes
+            const recentMessages = messages.slice(-50).reverse();
+            
+            recentMessages.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'message';
+                
+                const location = msg.location ? ` 📍 ${msg.location.city}` : '';
+                div.innerHTML = `
+                    <strong>${escapeHtml(msg.user)}</strong>${location}
+                    <span style="color: #888; font-size: 12px;">${msg.time}</span><br>
+                    ${escapeHtml(msg.text)}
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+        
+        // Atualizar estatísticas
+        function updateStats() {
+            document.getElementById('totalCount').textContent = messages.length;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
+        }
+        
+        // Atualizar contagem online (simulado)
+        function updateOnlineCount() {
+            const count = Math.floor(Math.random() * 20) + 5; // 5-25 usuários
+            document.getElementById('onlineCount').textContent = count;
+        }
+        
+        // Simular usuário online
+        function simulateOnlineUser() {
+            const userAgent = navigator.userAgent;
+            const isMobile = /Mobile|Android|iPhone|iPad/.test(userAgent);
+            
+            onlineUsers.add({
+                id: 'user-' + Math.random().toString(36).substr(2, 9),
+                platform: isMobile ? 'mobile' : 'desktop',
+                joined: Date.now()
+            });
+        }
+        
+        // Atualizar status
+        function updateStatus(text, type) {
+            const status = document.getElementById('status');
+            status.textContent = text;
+            status.className = `status ${type}`;
+        }
+        
+        // Escapar HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Inicializar quando carregar a página
+        window.onload = init;
+        
+        // Auto-refresh
+        setInterval(() => {
+            loadMessages();
+        }, 10000); // A cada 10 segundos
+        
+        // Adicionar algumas mensagens de exemplo se não houver nenhuma
+        if (messages.length === 0) {
+            messages = [
+                {
+                    id: 'welcome-1',
+                    user: '🌿 SOS Pantanal',
+                    text: 'Bem-vindo ao chat comunitário do SOS Pantanal! Este é um backend de teste.',
+                    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                    timestamp: Date.now(),
+                    location: { city: 'Brasil', region: 'BR', country: 'Brasil' }
+                },
+                {
+                    id: 'demo-1',
+                    user: 'Maria Silva',
+                    text: 'Olá! Alguém mais sabe sobre a situação dos focos de incêndio no Mato Grosso?',
+                    time: new Date(Date.now() - 300000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                    timestamp: Date.now() - 300000,
+                    location: { city: 'Cuiabá', region: 'MT', country: 'Brasil' }
+                },
+                {
+                    id: 'demo-2',
+                    user: 'João Santos',
+                    text: 'Vi bastante fumaça ontem perto da BR-262. Já reportei pelo app.',
+                    time: new Date(Date.now() - 600000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                    timestamp: Date.now() - 600000,
+                    location: { city: 'Corumbá', region: 'MS', country: 'Brasil' }
+                }
+            ];
+            displayMessages();
+        }
+    </script>
+</body>
+</html>

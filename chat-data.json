@@ -1,0 +1,42 @@
+[
+  {
+    "id": "welcome-1",
+    "user": "🌿 SOS Pantanal",
+    "text": "Bem-vindo ao chat comunitário! Compartilhe informações sobre focos de incêndio e ajude a proteger o Pantanal.",
+    "time": "14:30",
+    "timestamp": 1714336200000,
+    "location": { "city": "Brasil", "region": "BR", "country": "Brasil" }
+  },
+  {
+    "id": "demo-1",
+    "user": "Maria Silva",
+    "text": "Alguém mais sabe sobre a situação dos focos de incêndio no Mato Grosso do Sul?",
+    "time": "14:25",
+    "timestamp": 1714335900000,
+    "location": { "city": "Campo Grande", "region": "MS", "country": "Brasil" }
+  },
+  {
+    "id": "demo-2", 
+    "user": "João Santos",
+    "text": "Reportei um foco próximo à BR-262 há pouco. As brigadas já foram acionadas.",
+    "time": "14:20",
+    "timestamp": 1714335600000,
+    "location": { "city": "Corumbá", "region": "MS", "country": "Brasil" }
+  },
+  {
+    "id": "demo-3",
+    "user": "Ana Costa",
+    "text": "Fiquem atentos! O vento está forte hoje, pode espalhar o fogo rapidamente.",
+    "time": "14:15",
+    "timestamp": 1714335300000,
+    "location": { "city": "Cuiabá", "region": "MT", "country": "Brasil" }
+  },
+  {
+    "id": "demo-4",
+    "user": "Carlos Oliveira",
+    "text": "Obrigado a todos que estão ajudando no monitoramento! Juntos somos mais fortes. 🌿",
+    "time": "14:10",
+    "timestamp": 1714335000000,
+    "location": { "city": "Poconé", "region": "MT", "country": "Brasil" }
+  }
+]

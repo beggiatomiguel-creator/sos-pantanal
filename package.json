@@ -1,0 +1,48 @@
+{
+  "name": "sos-pantanal",
+  "version": "2.0.0",
+  "description": "SOS Pantanal - Sistema de alerta de incêndios em tempo real",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 8000",
+    "build": "npm run minify-js && npm run minify-css",
+    "minify-js": "terser js/modules/*.js js/app.js -o dist/bundle.min.js --compress --mangle",
+    "minify-css": "cleancss -o dist/styles.min.css css/styles.css",
+    "lint": "eslint js/**/*.js",
+    "test": "jest",
+    "deploy": "npm run build && gh-pages -d dist"
+  },
+  "keywords": [
+    "pantanal",
+    "fire",
+    "monitoring",
+    "nasa",
+    "firms",
+    "brazil",
+    "conservation"
+  ],
+  "author": "SOS Pantanal Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "terser": "^5.30.0",
+    "clean-css-cli": "^5.6.3",
+    "jest": "^29.7.0",
+    "gh-pages": "^6.1.1"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beggiatomiguel-creator/sos-pantanal.git"
+  },
+  "homepage": "https://beggiatomiguel-creator.github.io/sos-pantanal/"
+}
